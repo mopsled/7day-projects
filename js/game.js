@@ -1,6 +1,6 @@
 var Game = {
   display: null,
-  map: {},
+  map: [],
   engine: null,
   player: null,
   pedro: null,
@@ -21,15 +21,23 @@ var Game = {
   },
   
   _generateMap: function() {
-    var digger = new ROT.Map.Digger();
+    var width = 100, height = 100;
+    for (var i = 0; i < width; i++) {
+      row = [];
+      for (var j = 0; j < height; j++) {
+        row.push(' ');
+      }
+      this.map.push(row);
+    }
+
+    var digger = new ROT.Map.Digger(width, height);
     var freeCells = [];
     
-    var digCallback = function(x, y, value) {
-      if (value) { return; }
-      
-      var key = x+","+y;
-      this.map[key] = ".";
-      freeCells.push(key);
+    var digCallback = function(x, y, wall) {
+      if (wall) { return; }
+
+      this.map[x][y] = '.';
+      freeCells.push(x + "," + y);
     }
     digger.create(digCallback.bind(this));
     
@@ -59,11 +67,12 @@ var Game = {
   },
   
   _drawWholeMap: function() {
-    for (var key in this.map) {
-      var parts = key.split(",");
-      var x = parseInt(parts[0]);
-      var y = parseInt(parts[1]);
-      this.display.draw(x, y, this.map[key]);
+    var width = this.display._options.width;
+    var height = this.display._options.height;
+    for (var x = 0; x < width; x++) {
+      for (var y = 0; y < width; y++) {
+        this.display.draw(x, y, this.map[x][y]);
+      }
     }
   }
 };

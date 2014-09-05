@@ -5,13 +5,17 @@ var Game = {
   player: null,
   pedro: null,
   ananas: null,
+  actors: [],
   
   init: function() {
     this.display = new ROT.Display({spacing:1.1});
     document.body.appendChild(this.display.getContainer());
     
     this._generateMap();
-    this._drawWholeMap(); 
+    this._drawWholeMap();
+    for (var i = 0; i < this.actors.length; i++) {
+      this.actors[i]._draw();
+    }
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);
@@ -46,6 +50,7 @@ var Game = {
     this._generateBoxes(freeCells);
     this.player = this._createBeing(Player, freeCells);
     this.pedro = this._createBeing(Pedro, freeCells);
+    this.actors = [this.player, this.pedro];
   },
   
   _createBeing: function(what, freeCells) {
@@ -84,13 +89,9 @@ var Game = {
           this.display.draw(x, y, 'x');
         } else {
           this.display.draw(x, y, this.map[x + mapOffsetX][y + mapOffsetY]);
-        }
-        
+        } 
       }
     }
-
-    this.player._draw();
-    this.pedro._draw();
   },
 
   invalidScreenCoordinate: function(x, y) {
@@ -150,6 +151,7 @@ Player.prototype.handleEvent = function(e) {
   this._x = newX;
   this._y = newY;
   Game._drawWholeMap();
+  this._draw();
   window.removeEventListener("keydown", this);
   Game.engine.unlock();
 }
@@ -207,6 +209,7 @@ Pedro.prototype.act = function() {
     y = path[0][1];
     this._x = x;
     this._y = y;
+    this._draw();
   }
 }
   

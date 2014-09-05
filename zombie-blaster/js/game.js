@@ -5,7 +5,7 @@ var Game = {
   player: null,
   pedro: null,
   ananas: null,
-  actors: [],
+  zombies: [],
   
   init: function() {
     this.display = new ROT.Display({spacing:1.1});
@@ -13,13 +13,15 @@ var Game = {
     
     this._generateMap();
     this._drawWholeMap();
-    for (var i = 0; i < this.actors.length; i++) {
-      this.actors[i]._draw();
+    for (var i = 0; i < this.zombies.length; i++) {
+      this.zombies[i]._draw();
     }
+    this.player._draw();
     
     var scheduler = new ROT.Scheduler.Simple();
-    for (var i = 0; i < this.actors.length; i++) {
-      scheduler.add(this.actors[i], true);
+    scheduler.add(this.player, true);
+    for (var i = 0; i < this.zombies.length; i++) {
+      scheduler.add(this.zombies[i], true);
     }
 
     this.engine = new ROT.Engine(scheduler);
@@ -57,22 +59,13 @@ var Game = {
     }
     
     this._generateBoxes(freeCells);
-    this.player = this._createBeing(Player, freeCells);
+    this.player = createBeing(Player, freeCells);
 
-    this.actors = [this.player];
+    this.zombies = [];
     for (var i = 0; i < 10; i++) {
-      var zombie = this._createBeing(Zombie, freeCells);
-      this.actors.push(zombie);
+      var zombie = createBeing(Zombie, freeCells);
+      this.zombies.push(zombie);
     }
-  },
-  
-  _createBeing: function(what, freeCells) {
-    var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-    var key = freeCells.splice(index, 1)[0];
-    var parts = key.split(",");
-    var x = parseInt(parts[0]);
-    var y = parseInt(parts[1]);
-    return new what(x, y);
   },
   
   _generateBoxes: function(freeCells) {
@@ -121,9 +114,10 @@ var Game = {
   }
 };
 
-var Player = function(x, y) {
+var Player = function(x, y, id) {
   this._x = x;
   this._y = y;
+  this._id = id;
 }
   
 Player.prototype.getSpeed = function() { return 100; }
@@ -190,22 +184,25 @@ Player.prototype._checkBox = function() {
   }
 }
   
-var Zombie = function(x, y) {
+var Zombie = function(x, y, id) {
   this._x = x;
   this._y = y;
+  this._id = id;
   this._draw();
 }
   
 Zombie.prototype.getSpeed = function() { return 100; }
   
 Zombie.prototype.act = function() {
-  var x = Game.player.getX();
-  var y = Game.player.getY();
+  var playerX = Game.player.getX();
+  var playerY = Game.player.getY();
 
   var passableCallback = function(x, y) {
-    return Game.map[x][y] == "." || Game.map[x][y] == "*";
+    var mapPassable = Game.map[x][y] == "." || Game.map[x][y] == "*";
+    return mapPassable && !this._anotherZombieAtCoordinates(x, y);
   }
-  var astar = new ROT.Path.AStar(x, y, passableCallback, {topology:4});
+
+  var astar = new ROT.Path.AStar(playerX, playerY, passableCallback.bind(this), {topology:4});
 
   var path = [];
   var pathCallback = function(x, y) {
@@ -223,6 +220,8 @@ Zombie.prototype.act = function() {
     this._x = x;
     this._y = y;
     this._draw();
+  } else {
+    this._draw();
   }
 }
   
@@ -233,6 +232,19 @@ Zombie.prototype._draw = function() {
   }
 }
 
+Zombie.prototype._anotherZombieAtCoordinates = function(x, y) {
+  for (var i = 0; i < Game.zombies.length; i++) {
+    var zombie = Game.zombies[i];
+    if (zombie._id == this._id) continue;
+
+    if (zombie._x == x && zombie._y == y) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function convertMapCoordinatesToScreen(x, y) {
   var screenWidth = Game.display._options.width;
   var screenHeight = Game.display._options.height;
@@ -241,4 +253,20 @@ function convertMapCoordinatesToScreen(x, y) {
   var screenTopLeftY = Math.floor(screenHeight/2.0) - Game.player.getY();
 
   return [x + screenTopLeftX, y + screenTopLeftY];
+}
+
+function createBeing(what, freeCells) {
+  var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+  var key = freeCells.splice(index, 1)[0];
+  var parts = key.split(",");
+  var x = parseInt(parts[0]);
+  var y = parseInt(parts[1]);
+
+  if (typeof createBeing.idCounter == 'undefined') {
+    createBeing.idCounter = 0;
+  } else {
+    createBeing.idCounter++;
+  }
+
+  return new what(x, y, createBeing.idCounter);
 }

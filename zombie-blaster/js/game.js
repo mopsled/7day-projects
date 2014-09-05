@@ -22,8 +22,8 @@ var Game = {
   },
   
   _generateMap: function() {
-    this.mapWidth = 200;
-    this.mapHeight = 100;
+    this.mapWidth = 50;
+    this.mapHeight = 50;
     for (var i = 0; i < this.mapWidth; i++) {
       row = [];
       for (var j = 0; j < this.mapHeight; j++) {
@@ -45,7 +45,7 @@ var Game = {
     
     // this._generateBoxes(freeCells);
     this.player = this._createBeing(Player, freeCells);
-    // this.pedro = this._createBeing(Pedro, freeCells);
+    this.pedro = this._createBeing(Pedro, freeCells);
   },
   
   _createBeing: function(what, freeCells) {
@@ -87,6 +87,7 @@ var Game = {
     }
 
     this.player._draw();
+    this.pedro._draw();
   },
 
   _invalidScreenCoordinate: function(x, y) {
@@ -171,13 +172,13 @@ Player.prototype._draw = function() {
 //   }
 // }
   
-// var Pedro = function(x, y) {
-//   this._x = x;
-//   this._y = y;
-//   this._draw();
-// }
+var Pedro = function(x, y) {
+  this._x = x;
+  this._y = y;
+  this._draw();
+}
   
-// Pedro.prototype.getSpeed = function() { return 100; }
+Pedro.prototype.getSpeed = function() { return 100; }
   
 // Pedro.prototype.act = function() {
 //   var x = Game.player.getX();
@@ -208,6 +209,17 @@ Player.prototype._draw = function() {
 //   }
 // }
   
-// Pedro.prototype._draw = function() {
-//   Game.display.draw(this._x, this._y, "P", "red");
-// }
+Pedro.prototype._draw = function() {
+  var screenWidth = Game.display._options.width;
+  var screenHeight = Game.display._options.height;
+
+  var screenTopLeftX = Math.floor(screenWidth/2.0) - Game.player.getX();
+  var screenTopLeftY = Math.floor(screenHeight/2.0) - Game.player.getY();
+
+  var mapX = this._x + screenTopLeftX;
+  var mapY = this._y + screenTopLeftY;
+
+  if (!Game._invalidScreenCoordinate(mapX, mapY)) {
+    Game.display.draw(mapX, mapY, "P", "red");
+  }
+}

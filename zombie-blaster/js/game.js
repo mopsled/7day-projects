@@ -37,16 +37,24 @@ var Game = {
       this.map.push(row);
     }
 
-    var digger = new ROT.Map.Digger(this.mapWidth, this.mapHeight);
-    var freeCells = [];
-    
+    // var digger = new ROT.Map.Digger(this.mapWidth, this.mapHeight);
+    // digger.create(digCallback.bind(this));
     var digCallback = function(x, y, wall) {
       if (wall) { return; }
 
       this.map[x][y] = '.';
       freeCells.push(x + "," + y);
     }
-    digger.create(digCallback.bind(this));
+
+    var freeCells = [];
+    var map = new ROT.Map.Cellular(this.mapWidth, this.mapHeight, {
+        born: [4, 5, 6, 7, 8],
+        survive: [2, 3, 4, 5]
+    });
+    map.randomize(0.9);
+    for (var i=49; i>=0; i--) {
+        map.create(i ? null : digCallback.bind(this));
+    }
     
     this._generateBoxes(freeCells);
     this.player = this._createBeing(Player, freeCells);
@@ -206,10 +214,10 @@ Zombie.prototype.act = function() {
   astar.compute(this._x, this._y, pathCallback);
 
   path.shift();
-  if (path.length <= 1) {
+  if (path.length == 1) {
     Game.engine.lock();
     alert("Game over - you were captured by Zombie!");
-  } else {
+  } else if (path.length > 1) {
     x = path[0][0];
     y = path[0][1];
     this._x = x;

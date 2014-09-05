@@ -15,7 +15,7 @@ var Game = {
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);
-    // scheduler.add(this.pedro, true);
+    scheduler.add(this.pedro, true);
 
     this.engine = new ROT.Engine(scheduler);
     this.engine.start();
@@ -75,9 +75,9 @@ var Game = {
 
     for (var x = 0; x < screenWidth; x++) {
       for (var y = 0; y <= screenHeight; y++) {
-        if (this._invalidScreenCoordinate(x, y)) { continue; }
+        if (this.invalidScreenCoordinate(x, y)) { continue; }
 
-        if (this._invalidMapCoordinate(x + mapOffsetX, y + mapOffsetY)) {
+        if (this.invalidMapCoordinate(x + mapOffsetX, y + mapOffsetY)) {
           this.display.draw(x, y, 'x');
         } else {
           this.display.draw(x, y, this.map[x + mapOffsetX][y + mapOffsetY]);
@@ -90,13 +90,13 @@ var Game = {
     this.pedro._draw();
   },
 
-  _invalidScreenCoordinate: function(x, y) {
+  invalidScreenCoordinate: function(x, y) {
     var screenWidth = this.display._options.width;
     var screenHeight = this.display._options.height;
     return x < 0 || x >= screenWidth ||
            y < 0 || y >= screenWidth;
   },
-  _invalidMapCoordinate: function(x, y) {
+  invalidMapCoordinate: function(x, y) {
     var mapWidth = this.map.length;
     var mapHeight = this.map[0].height;
     return x < 0 || x >= mapWidth ||
@@ -180,46 +180,46 @@ var Pedro = function(x, y) {
   
 Pedro.prototype.getSpeed = function() { return 100; }
   
-// Pedro.prototype.act = function() {
-//   var x = Game.player.getX();
-//   var y = Game.player.getY();
+Pedro.prototype.act = function() {
+  var x = Game.player.getX();
+  var y = Game.player.getY();
 
-//   var passableCallback = function(x, y) {
-//     return (x+","+y in Game.map);
-//   }
-//   var astar = new ROT.Path.AStar(x, y, passableCallback, {topology:4});
+  var passableCallback = function(x, y) {
+    return Game.map[x][y] == ".";
+  }
+  var astar = new ROT.Path.AStar(x, y, passableCallback, {topology:4});
 
-//   var path = [];
-//   var pathCallback = function(x, y) {
-//     path.push([x, y]);
-//   }
-//   astar.compute(this._x, this._y, pathCallback);
+  var path = [];
+  var pathCallback = function(x, y) {
+    path.push([x, y]);
+  }
+  astar.compute(this._x, this._y, pathCallback);
 
-//   path.shift();
-//   if (path.length == 1) {
-//     Game.engine.lock();
-//     alert("Game over - you were captured by Pedro!");
-//   } else {
-//     x = path[0][0];
-//     y = path[0][1];
-//     Game.display.draw(this._x, this._y, Game.map[this._x+","+this._y]);
-//     this._x = x;
-//     this._y = y;
-//     this._draw();
-//   }
-// }
+  path.shift();
+  if (path.length <= 1) {
+    Game.engine.lock();
+    alert("Game over - you were captured by Pedro!");
+  } else {
+    x = path[0][0];
+    y = path[0][1];
+    this._x = x;
+    this._y = y;
+  }
+}
   
 Pedro.prototype._draw = function() {
+  screenXY = convertMapCoordinatesToScreen(this._x, this._y);
+  if (!Game.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
+    Game.display.draw(screenXY[0], screenXY[1], "P", "red");
+  }
+}
+
+function convertMapCoordinatesToScreen(x, y) {
   var screenWidth = Game.display._options.width;
   var screenHeight = Game.display._options.height;
 
   var screenTopLeftX = Math.floor(screenWidth/2.0) - Game.player.getX();
   var screenTopLeftY = Math.floor(screenHeight/2.0) - Game.player.getY();
 
-  var mapX = this._x + screenTopLeftX;
-  var mapY = this._y + screenTopLeftY;
-
-  if (!Game._invalidScreenCoordinate(mapX, mapY)) {
-    Game.display.draw(mapX, mapY, "P", "red");
-  }
+  return [x + screenTopLeftX, y + screenTopLeftY];
 }

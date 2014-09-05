@@ -18,8 +18,9 @@ var Game = {
     }
     
     var scheduler = new ROT.Scheduler.Simple();
-    scheduler.add(this.player, true);
-    scheduler.add(this.pedro, true);
+    for (var i = 0; i < this.actors.length; i++) {
+      scheduler.add(this.actors[i], true);
+    }
 
     this.engine = new ROT.Engine(scheduler);
     this.engine.start();
@@ -49,8 +50,12 @@ var Game = {
     
     this._generateBoxes(freeCells);
     this.player = this._createBeing(Player, freeCells);
-    this.pedro = this._createBeing(Pedro, freeCells);
-    this.actors = [this.player, this.pedro];
+
+    this.actors = [this.player];
+    for (var i = 0; i < 10; i++) {
+      var zombie = this._createBeing(Zombie, freeCells);
+      this.actors.push(zombie);
+    }
   },
   
   _createBeing: function(what, freeCells) {
@@ -177,20 +182,20 @@ Player.prototype._checkBox = function() {
   }
 }
   
-var Pedro = function(x, y) {
+var Zombie = function(x, y) {
   this._x = x;
   this._y = y;
   this._draw();
 }
   
-Pedro.prototype.getSpeed = function() { return 100; }
+Zombie.prototype.getSpeed = function() { return 100; }
   
-Pedro.prototype.act = function() {
+Zombie.prototype.act = function() {
   var x = Game.player.getX();
   var y = Game.player.getY();
 
   var passableCallback = function(x, y) {
-    return Game.map[x][y] == ".";
+    return Game.map[x][y] == "." || Game.map[x][y] == "*";
   }
   var astar = new ROT.Path.AStar(x, y, passableCallback, {topology:4});
 
@@ -203,7 +208,7 @@ Pedro.prototype.act = function() {
   path.shift();
   if (path.length <= 1) {
     Game.engine.lock();
-    alert("Game over - you were captured by Pedro!");
+    alert("Game over - you were captured by Zombie!");
   } else {
     x = path[0][0];
     y = path[0][1];
@@ -213,10 +218,10 @@ Pedro.prototype.act = function() {
   }
 }
   
-Pedro.prototype._draw = function() {
+Zombie.prototype._draw = function() {
   screenXY = convertMapCoordinatesToScreen(this._x, this._y);
   if (!Game.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
-    Game.display.draw(screenXY[0], screenXY[1], "P", "red");
+    Game.display.draw(screenXY[0], screenXY[1], "Z", "red");
   }
 }
 

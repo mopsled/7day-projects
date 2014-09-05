@@ -43,7 +43,7 @@ var Game = {
     }
     digger.create(digCallback.bind(this));
     
-    // this._generateBoxes(freeCells);
+    this._generateBoxes(freeCells);
     this.player = this._createBeing(Player, freeCells);
     this.pedro = this._createBeing(Pedro, freeCells);
   },
@@ -57,14 +57,17 @@ var Game = {
     return new what(x, y);
   },
   
-  // _generateBoxes: function(freeCells) {
-  //   for (var i=0;i<10;i++) {
-  //     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-  //     var key = freeCells.splice(index, 1)[0];
-  //     this.map[key] = "*";
-  //     if (!i) { this.ananas = key; } /* first box contains an ananas */
-  //   }
-  // },
+  _generateBoxes: function(freeCells) {
+    for (var i = 0; i < 10; i++) {
+      var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
+      var key = freeCells.splice(index, 1)[0];
+      var parts = key.split(",");
+      var x = parseInt(parts[0]);
+      var y = parseInt(parts[1]);
+      this.map[x][y] = "*";
+      if (i == 0) { this.ananas = key; }
+    }
+  },
   
   _drawWholeMap: function() {
     var screenWidth = this.display._options.width;
@@ -159,18 +162,18 @@ Player.prototype._draw = function() {
   Game.display.draw(centerX, centerY, "@", "#ff0");
 }
   
-// Player.prototype._checkBox = function() {
-//   var key = this._x + "," + this._y;
-//   if (Game.map[key] != "*") {
-//     alert("There is no box here!");
-//   } else if (key == Game.ananas) {
-//     alert("Hooray! You found an ananas and won this game.");
-//     Game.engine.lock();
-//     window.removeEventListener("keydown", this);
-//   } else {
-//     alert("This box is empty :-(");
-//   }
-// }
+Player.prototype._checkBox = function() {
+  var key = this._x + "," + this._y;
+  if (Game.map[this._x][this._y] != "*") {
+    alert("There is no box here!");
+  } else if (key == Game.ananas) {
+    alert("Hooray! You found an ananas and won this game.");
+    Game.engine.lock();
+    window.removeEventListener("keydown", this);
+  } else {
+    alert("This box is empty :-(");
+  }
+}
   
 var Pedro = function(x, y) {
   this._x = x;

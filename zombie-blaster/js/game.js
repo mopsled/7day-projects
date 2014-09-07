@@ -63,7 +63,7 @@ var Game = {
 
     this.zombies.list = [];
     this.zombies.locations = {};
-    for (var i = 0; i < 100; i++) {
+    for (var i = 0; i < 1000; i++) {
       var zombie = createBeing(Zombie, freeCells);
       this.zombies.list.push(zombie);
       this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
@@ -212,8 +212,39 @@ Zombie.prototype.act = function() {
   var playerX = Game.player.getX();
   var playerY = Game.player.getY();
 
+  var distanceToPlayer = Math.sqrt(Math.pow(this._x - playerX, 2) + Math.pow(this._y - playerY, 2));
+  if (distanceToPlayer > 4) {
+    var movDirection = ['x', 'y'].random();
+    var newX, newY;
+    if (movDirection === 'x') {
+      if (playerX > this._x) {
+        newX = this._x + 1;
+      } else {
+        newX = this._x - 1;
+      }
+      newY = this._y;
+    } else {
+      if (playerY > this._y) {
+        newY = this._y + 1;
+      } else {
+        newY = this._y - 1;
+      }
+      newX = this._x;
+    }
+
+    if (!this._anotherZombieAtCoordinates(newX, newY)) {
+      delete Game.zombies.locations[this._x + ',' + this._y];
+      this._x = newX;
+      this._y = newY;
+      Game.zombies.locations[newX + ',' + newY] = this._id;
+      this._draw();
+    }
+
+    return;
+  }
+  
   var passableCallback = function(x, y) {
-    var mapPassable = Game.map[x][y] == "." || Game.map[x][y] == "*";
+    var mapPassable = Game.map[x][y] === '.';
     return mapPassable && !this._anotherZombieAtCoordinates(x, y);
   }
 

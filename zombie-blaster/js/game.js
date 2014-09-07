@@ -5,7 +5,7 @@ var Game = {
   player: null,
   pedro: null,
   ananas: null,
-  zombies: [],
+  zombies: {},
   
   init: function() {
     this.display = new ROT.Display({spacing:1.1});
@@ -13,15 +13,15 @@ var Game = {
     
     this._generateMap();
     this._drawWholeMap();
-    for (var i = 0; i < this.zombies.length; i++) {
-      this.zombies[i]._draw();
+    for (var i = 0; i < this.zombies.list.length; i++) {
+      this.zombies.list[i]._draw();
     }
     this.player._draw();
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);
-    for (var i = 0; i < this.zombies.length; i++) {
-      scheduler.add(this.zombies[i], true);
+    for (var i = 0; i < this.zombies.list.length; i++) {
+      scheduler.add(this.zombies.list[i], true);
     }
 
     this.engine = new ROT.Engine(scheduler);
@@ -29,8 +29,8 @@ var Game = {
   },
   
   _generateMap: function() {
-    this.mapWidth = 50;
-    this.mapHeight = 50;
+    this.mapWidth = 500;
+    this.mapHeight = 200;
     for (var i = 0; i < this.mapWidth; i++) {
       row = [];
       for (var j = 0; j < this.mapHeight; j++) {
@@ -61,10 +61,12 @@ var Game = {
     this._generateBoxes(freeCells);
     this.player = createBeing(Player, freeCells);
 
-    this.zombies = [];
-    for (var i = 0; i < 10; i++) {
+    this.zombies.list = [];
+    this.zombies.locations = {};
+    for (var i = 0; i < 100; i++) {
       var zombie = createBeing(Zombie, freeCells);
-      this.zombies.push(zombie);
+      this.zombies.list.push(zombie);
+      this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
     }
   },
   
@@ -92,7 +94,7 @@ var Game = {
         if (this.invalidScreenCoordinate(x, y)) { continue; }
 
         if (this.invalidMapCoordinate(x + mapOffsetX, y + mapOffsetY)) {
-          this.display.draw(x, y, 'x');
+          this.display.draw(x, y, ' ');
         } else {
           this.display.draw(x, y, this.map[x + mapOffsetX][y + mapOffsetY]);
         } 
@@ -194,6 +196,19 @@ var Zombie = function(x, y, id) {
 Zombie.prototype.getSpeed = function() { return 100; }
   
 Zombie.prototype.act = function() {
+  screenXY = convertMapCoordinatesToScreen(this._x, this._y);
+  if (Game.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
+    var movX = [-1, 0, 1].random();
+    var movY = [-1, 0, 1].random();
+    if (!this._anotherZombieAtCoordinates(this._x + movX, this._y + movY)) {
+      delete Game.zombies.locations[this._x + ',' + this._y];
+      this._x += movX;
+      this._y += movY;
+      Game.zombies.locations[this._x + ',' + this._y] = this._id;
+    }
+    return;
+  }
+
   var playerX = Game.player.getX();
   var playerY = Game.player.getY();
 
@@ -215,10 +230,12 @@ Zombie.prototype.act = function() {
     Game.engine.lock();
     alert("Game over - you were captured by Zombie!");
   } else if (path.length > 1) {
+    delete Game.zombies.locations[this._x + ',' + this._y];
     x = path[0][0];
     y = path[0][1];
     this._x = x;
     this._y = y;
+    Game.zombies.locations[this._x + ',' + this._y] = this._id;
     this._draw();
   } else {
     this._draw();
@@ -233,15 +250,9 @@ Zombie.prototype._draw = function() {
 }
 
 Zombie.prototype._anotherZombieAtCoordinates = function(x, y) {
-  for (var i = 0; i < Game.zombies.length; i++) {
-    var zombie = Game.zombies[i];
-    if (zombie._id == this._id) continue;
-
-    if (zombie._x == x && zombie._y == y) {
-      return true;
-    }
-  }
-
+  var key = x + ',' + y;
+  if (Game.zombies.locations[key] == this._id) return false;
+  if (key in Game.zombies.locations) return true;
   return false;
 }
 

@@ -13,10 +13,6 @@ var Game = {
     
     this._generateMap();
     this._drawWholeMap();
-    for (var i = 0; i < this.zombies.list.length; i++) {
-      this.zombies.list[i]._draw();
-    }
-    this.player._draw();
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);
@@ -63,10 +59,12 @@ var Game = {
 
     this.zombies.list = [];
     this.zombies.locations = {};
+    this.zombies.lookupById = {};
     for (var i = 0; i < 1000; i++) {
       var zombie = createBeing(Zombie, freeCells);
       this.zombies.list.push(zombie);
       this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
+      this.zombies.lookupById[zombie._id] = zombie;
     }
   },
   
@@ -99,13 +97,21 @@ var Game = {
 
     var mapX = screenX + mapOffsetX;
     var mapY = screenY + mapOffsetY;
+    var key = mapX + ',' + mapY;
 
-    if (this.invalidScreenCoordinate(screenX, screenY) 
-      || this.invalidMapCoordinate(mapX, mapY)) {
+    if (this.invalidScreenCoordinate(screenX, screenY) || this.invalidMapCoordinate(mapX, mapY)) {
       return;
     }
 
-    this.display.draw(screenX, screenY, this.map[mapX][mapY]);
+    if (this.player.getX() === mapX && this.player.getY() === mapY) {
+      this.player._draw(screenX, screenY);
+    } else if (key in Game.zombies.locations) {
+      var id = Game.zombies.locations[key];
+      var zombie = this.zombies.lookupById[id];
+      zombie._draw(screenX, screenY);
+    } else {
+      this.display.draw(screenX, screenY, this.map[mapX][mapY]);
+    }
   },
 
   invalidScreenCoordinate: function(x, y) {
@@ -173,12 +179,8 @@ Player.prototype.handleEvent = function(e) {
   Game.engine.unlock();
 }
 
-Player.prototype._draw = function() {
-  var screenWidth = Game.display._options.width;
-  var screenHeight = Game.display._options.height;
-  var centerX = Math.floor(screenWidth/2.0);
-  var centerY = Math.floor(screenHeight/2.0);
-  Game.display.draw(centerX, centerY, "@", "#ff0");
+Player.prototype._draw = function(x, y) {
+  Game.display.draw(x, y, "@", "#ff0");
 }
   
 Player.prototype._checkBox = function() {
@@ -281,11 +283,8 @@ Zombie.prototype.act = function() {
   }
 }
   
-Zombie.prototype._draw = function() {
-  screenXY = convertMapCoordinatesToScreen(this._x, this._y);
-  if (!Game.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
-    Game.display.draw(screenXY[0], screenXY[1], "Z", "red");
-  }
+Zombie.prototype._draw = function(x, y) {
+  Game.display.draw(x, y, "Z", "red");
 }
 
 Zombie.prototype._anotherZombieAtCoordinates = function(x, y) {

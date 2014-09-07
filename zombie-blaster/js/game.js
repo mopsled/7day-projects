@@ -88,7 +88,7 @@ var Game = {
     }
   },
 
-  _drawCell: function(screenX, screenY) {
+  _drawCell: function(screenX, screenY, background) {
     var screenWidth = this.display._options.width;
     var screenHeight = this.display._options.height;
 
@@ -104,13 +104,17 @@ var Game = {
     }
 
     if (this.player.getX() === mapX && this.player.getY() === mapY) {
-      this.player._draw(screenX, screenY);
+      this.player._draw(screenX, screenY, background);
     } else if (key in Game.zombies.locations) {
       var id = Game.zombies.locations[key];
       var zombie = this.zombies.lookupById[id];
-      zombie._draw(screenX, screenY);
+      zombie._draw(screenX, screenY, background);
     } else {
-      this.display.draw(screenX, screenY, this.map[mapX][mapY]);
+      if (background === undefined) {
+        this.display.draw(screenX, screenY, this.map[mapX][mapY]);
+      } else {
+        this.display.draw(screenX, screenY, this.map[mapX][mapY], '#aaa', background);
+      }
     }
   },
 
@@ -179,8 +183,8 @@ Player.prototype.handleEvent = function(e) {
   Game.engine.unlock();
 }
 
-Player.prototype._draw = function(x, y) {
-  Game.display.draw(x, y, "@", "#ff0");
+Player.prototype._draw = function(x, y, background) {
+  Game.display.draw(x, y, "@", "#ff0", background);
 }
   
 Player.prototype._checkBox = function() {
@@ -283,8 +287,8 @@ Zombie.prototype.act = function() {
   }
 }
   
-Zombie.prototype._draw = function(x, y) {
-  Game.display.draw(x, y, "Z", "red");
+Zombie.prototype._draw = function(x, y, background) {
+  Game.display.draw(x, y, "Z", "red", background);
 }
 
 Zombie.prototype._anotherZombieAtCoordinates = function(x, y) {
@@ -327,5 +331,5 @@ var aim = function(e) {
   cellX = Math.floor(cellX);
   var cellY = y / e.currentTarget.clientHeight * Game.display._options.height;
   cellY = Math.floor(cellY);
-  Game.display.drawText(cellX, cellY, '%b{red}.%b{}', 'red');
+  Game._drawCell(cellX, cellY, '#a00');
 }

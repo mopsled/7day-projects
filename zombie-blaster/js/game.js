@@ -83,23 +83,29 @@ var Game = {
   },
   
   _drawWholeMap: function() {
+    for (var x = 0; x < this.display._options.width; x++) {
+      for (var y = 0; y <= this.display._options.height; y++) {
+        this._drawCell(x, y);
+      }
+    }
+  },
+
+  _drawCell: function(screenX, screenY) {
     var screenWidth = this.display._options.width;
     var screenHeight = this.display._options.height;
 
     var mapOffsetX = this.player.getX() - Math.floor(screenWidth/2.0);
     var mapOffsetY = this.player.getY() - Math.floor(screenHeight/2.0);
 
-    for (var x = 0; x < screenWidth; x++) {
-      for (var y = 0; y <= screenHeight; y++) {
-        if (this.invalidScreenCoordinate(x, y)) { continue; }
+    var mapX = screenX + mapOffsetX;
+    var mapY = screenY + mapOffsetY;
 
-        if (this.invalidMapCoordinate(x + mapOffsetX, y + mapOffsetY)) {
-          this.display.draw(x, y, ' ');
-        } else {
-          this.display.draw(x, y, this.map[x + mapOffsetX][y + mapOffsetY]);
-        } 
-      }
+    if (this.invalidScreenCoordinate(screenX, screenY) 
+      || this.invalidMapCoordinate(mapX, mapY)) {
+      return;
     }
+
+    this.display.draw(screenX, screenY, this.map[mapX][mapY]);
   },
 
   invalidScreenCoordinate: function(x, y) {
@@ -129,6 +135,7 @@ Player.prototype.getY = function() { return this._y; }
 Player.prototype.act = function() {
   Game.engine.lock();
   window.addEventListener("keydown", this);
+  Game.display.getContainer().addEventListener('mousemove', aim);
 }
   
 Player.prototype.handleEvent = function(e) {
@@ -162,6 +169,7 @@ Player.prototype.handleEvent = function(e) {
   Game._drawWholeMap();
   this._draw();
   window.removeEventListener("keydown", this);
+  Game.display.getContainer().removeEventListener('mousemove', aim);
   Game.engine.unlock();
 }
 
@@ -311,4 +319,14 @@ function createBeing(what, freeCells) {
   }
 
   return new what(x, y, createBeing.idCounter);
+}
+
+var aim = function(e) {
+  var x = e.offsetX;
+  var y = e.offsetY;
+  var cellX = x / e.currentTarget.clientWidth * Game.display._options.width;
+  cellX = Math.floor(cellX);
+  var cellY = y / e.currentTarget.clientHeight * Game.display._options.height;
+  cellY = Math.floor(cellY);
+  Game.display.drawText(cellX, cellY, '%b{red}.%b{}', 'red');
 }

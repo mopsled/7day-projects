@@ -340,32 +340,25 @@ var aim = function(e) {
 
   var playerCellX = Math.floor(Game.display._options.width / 2.0);
   var playerCellY = Math.floor(Game.display._options.height / 2.0);
-  var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)))
+  var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)));
+  var gunEffectiveRange = 4;
 
-  var x = radius;
-  var y = 0;
-  var radiusError = 1 - x;
-  while (x >= y) {
-    var pixelsToDraw = [];
-    pixelsToDraw.push([x + playerCellX, y + playerCellY]);
-    pixelsToDraw.push([y + playerCellX, x + playerCellY]);
-    pixelsToDraw.push([-x + playerCellX, y + playerCellY]);
-    pixelsToDraw.push([-y + playerCellX, x + playerCellY]);
-    pixelsToDraw.push([-x + playerCellX, -y + playerCellY]);
-    pixelsToDraw.push([-y + playerCellX, -x + playerCellY]);
-    pixelsToDraw.push([x + playerCellX, -y + playerCellY]);
-    pixelsToDraw.push([y + playerCellX, -x + playerCellY]);
-
-    for (var i = 0; i < pixelsToDraw.length; i++) {
-      Game._drawCell(pixelsToDraw[i][0], pixelsToDraw[i][1], '#a00');
-      previouslyHighlighted.push(pixelsToDraw[i]);
-    }
-    y++;
-    if (radiusError < 0) {
-      radiusError += 2 * y + 1;
-    } else {
-      x--;
-      radiusError += 2 * (y - x + 1);
+  for (var x = playerCellX - radius; x < playerCellX + radius; x++) {
+    for (var y = playerCellY - radius; y < playerCellY + radius; y++) {
+      var distanceToCell = Math.floor(Math.sqrt(Math.pow(playerCellX - x, 2) + Math.pow(playerCellY - y, 2)));
+      if (distanceToCell < radius) {
+        var intensity;
+        if (distanceToCell < gunEffectiveRange) {
+          intensity = 150;
+        } else {
+          intensity = Math.floor(255 * 1/distanceToCell * 1.4);
+        }
+        
+        if (intensity > 20) {
+          Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
+          previouslyHighlighted.push([x, y]);
+        }
+      }
     }
   }
 }

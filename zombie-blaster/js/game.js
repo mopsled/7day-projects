@@ -151,6 +151,7 @@ var Player = function(x, y, id) {
   this._x = x;
   this._y = y;
   this._id = id;
+  this._ammo = 12;
 }
   
 Player.prototype.getSpeed = function() { return 100; }
@@ -162,8 +163,10 @@ Player.prototype.act = function() {
   Game._drawWholeMap();
   Game.engine.lock();
   window.addEventListener("keydown", this);
-  Game.display.getContainer().addEventListener('mousemove', aim);
-  Game.display.getContainer().addEventListener('mouseup', fire);
+  if (this._ammo > 0) {
+    Game.display.getContainer().addEventListener('mousemove', aim);
+    Game.display.getContainer().addEventListener('mouseup', fire);
+  }
 }
   
 Player.prototype.handleEvent = function(e) {
@@ -389,6 +392,7 @@ var aim = function(e) {
 
   for (var x = playerCellX - radius; x < playerCellX + radius; x++) {
     for (var y = playerCellY - radius; y < playerCellY + radius; y++) {
+      if (x === playerCellX && y === playerCellY) continue;
       var distanceToCell = Math.floor(Math.sqrt(Math.pow(playerCellX - x, 2) + Math.pow(playerCellY - y, 2)));
       if (distanceToCell > effectiveRange) {
         continue;
@@ -405,6 +409,25 @@ var aim = function(e) {
       }
     }
   }
+}
+
+var fire = function(e) {
+  Game.player._ammo--;
+  for (var i = 0; i < currentlyAimed.length; i++) {
+    point = convertScreenCoordinatesToMap(currentlyAimed[i][0], currentlyAimed[i][1]);
+
+    key = point[0] + ',' + point[1];
+    if (key in Game.zombies.locations) {
+      var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
+      var intensity = currentlyAimed[i][2];
+      zombie.takeDamage(intensity);
+    }
+  }
+
+  Game.display.getContainer().removeEventListener('mousemove', aim);
+  Game.display.getContainer().removeEventListener('mouseup', fire);
+  window.removeEventListener("keydown", this);
+  Game.engine.unlock();
 }
 
 function rotate(center, point, degrees) {
@@ -425,22 +448,4 @@ function pointInTriangle(pt, v1, v2, v3) {
 
 function sign(p1, p2, p3) {
   return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
-}
-
-var fire = function(e) {
-  for (var i = 0; i < currentlyAimed.length; i++) {
-    point = convertScreenCoordinatesToMap(currentlyAimed[i][0], currentlyAimed[i][1]);
-
-    key = point[0] + ',' + point[1];
-    if (key in Game.zombies.locations) {
-      var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
-      var intensity = currentlyAimed[i][2];
-      zombie.takeDamage(intensity);
-    }
-  }
-
-  Game.display.getContainer().removeEventListener('mousemove', aim);
-  Game.display.getContainer().removeEventListener('mouseup', fire);
-  window.removeEventListener("keydown", this);
-  Game.engine.unlock();
 }

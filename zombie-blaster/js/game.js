@@ -324,12 +324,48 @@ function createBeing(what, freeCells) {
   return new what(x, y, createBeing.idCounter);
 }
 
+var previouslyHighlighted = [];
+
 var aim = function(e) {
-  var x = e.offsetX;
-  var y = e.offsetY;
-  var cellX = x / e.currentTarget.clientWidth * Game.display._options.width;
+  for (var i = 0; i < previouslyHighlighted.length; i++) {
+    point = previouslyHighlighted[i];
+    Game._drawCell(point[0], point[1]);
+  }
+  previouslyHighlighted = [];
+
+  var cellX = e.offsetX / e.currentTarget.clientWidth * Game.display._options.width;
   cellX = Math.floor(cellX);
-  var cellY = y / e.currentTarget.clientHeight * Game.display._options.height;
+  var cellY = e.offsetY / e.currentTarget.clientHeight * Game.display._options.height;
   cellY = Math.floor(cellY);
-  Game._drawCell(cellX, cellY, '#a00');
+
+  var playerCellX = Math.floor(Game.display._options.width / 2.0);
+  var playerCellY = Math.floor(Game.display._options.height / 2.0);
+  var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)))
+
+  var x = radius;
+  var y = 0;
+  var radiusError = 1 - x;
+  while (x >= y) {
+    var pixelsToDraw = [];
+    pixelsToDraw.push([x + playerCellX, y + playerCellY]);
+    pixelsToDraw.push([y + playerCellX, x + playerCellY]);
+    pixelsToDraw.push([-x + playerCellX, y + playerCellY]);
+    pixelsToDraw.push([-y + playerCellX, x + playerCellY]);
+    pixelsToDraw.push([-x + playerCellX, -y + playerCellY]);
+    pixelsToDraw.push([-y + playerCellX, -x + playerCellY]);
+    pixelsToDraw.push([x + playerCellX, -y + playerCellY]);
+    pixelsToDraw.push([y + playerCellX, -x + playerCellY]);
+
+    for (var i = 0; i < pixelsToDraw.length; i++) {
+      Game._drawCell(pixelsToDraw[i][0], pixelsToDraw[i][1], '#a00');
+      previouslyHighlighted.push(pixelsToDraw[i]);
+    }
+    y++;
+    if (radiusError < 0) {
+      radiusError += 2 * y + 1;
+    } else {
+      x--;
+      radiusError += 2 * (y - x + 1);
+    }
+  }
 }

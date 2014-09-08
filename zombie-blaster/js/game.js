@@ -6,6 +6,8 @@ var Game = {
   pedro: null,
   ananas: null,
   zombies: {},
+  zombieRate: 1,
+  floorCells: [],
   
   init: function() {
     this.display = new ROT.Display({spacing:1.1});
@@ -41,10 +43,9 @@ var Game = {
       if (wall) { return; }
 
       this.map[x][y] = '.';
-      freeCells.push(x + "," + y);
+      this.floorCells.push(x + "," + y);
     }
 
-    var freeCells = [];
     var map = new ROT.Map.Cellular(this.mapWidth, this.mapHeight, {
         born: [4, 5, 6, 7, 8],
         survive: [2, 3, 4, 5]
@@ -54,14 +55,14 @@ var Game = {
         map.create(i ? null : digCallback.bind(this));
     }
     
-    this._generateBoxes(freeCells);
-    this.player = createBeing(Player, freeCells);
+    this._generateBoxes(this.floorCells);
+    this.player = createBeing(Player, this.floorCells);
 
     this.zombies.list = [];
     this.zombies.locations = {};
     this.zombies.lookupById = {};
     for (var i = 0; i < 1000; i++) {
-      var zombie = createBeing(Zombie, freeCells);
+      var zombie = createBeing(Zombie, this.floorCells);
       this.zombies.list.push(zombie);
       this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
       this.zombies.lookupById[zombie._id] = zombie;
@@ -124,11 +125,25 @@ var Game = {
     return x < 0 || x >= screenWidth ||
            y < 0 || y >= screenWidth;
   },
+
   invalidMapCoordinate: function(x, y) {
     var mapWidth = this.map.length;
     var mapHeight = this.map[0].height;
     return x < 0 || x >= mapWidth ||
            y < 0 || y >= mapHeight;
+  },
+
+  generateNewZombies: function() {
+    var newZombieList = [];
+    for (var i = 0; i < this.zombieRate; i++) {
+      var zombie = createBeing(Zombie, this.floorCells);
+      newZombieList.push(zombie);
+      this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
+      this.zombies.lookupById[zombie._id] = zombie;
+    }
+    for (var i = 0; i < newZombieList.length; i++) {
+      Game.engine._scheduler.add(newZombieList[i], true);
+    }
   }
 };
 
@@ -143,10 +158,12 @@ Player.prototype.getX = function() { return this._x; }
 Player.prototype.getY = function() { return this._y; }
 
 Player.prototype.act = function() {
+  Game.generateNewZombies();
   Game._drawWholeMap();
   Game.engine.lock();
   window.addEventListener("keydown", this);
   Game.display.getContainer().addEventListener('mousemove', aim);
+  Game.display.getContainer().addEventListener('mouseup', fire);
 }
   
 Player.prototype.handleEvent = function(e) {
@@ -179,6 +196,7 @@ Player.prototype.handleEvent = function(e) {
   this._y = newY;
   window.removeEventListener("keydown", this);
   Game.display.getContainer().removeEventListener('mousemove', aim);
+  Game.display.getContainer().removeEventListener('mouseup', fire);
   Game.engine.unlock();
 }
 
@@ -203,6 +221,7 @@ var Zombie = function(x, y, id) {
   this._x = x;
   this._y = y;
   this._id = id;
+  this._health = 100;
 }
   
 Zombie.prototype.getSpeed = function() { return 100; }
@@ -282,7 +301,8 @@ Zombie.prototype.act = function() {
 }
   
 Zombie.prototype._draw = function(x, y, background) {
-  Game.display.draw(x, y, "Z", "red", background);
+  var color = ROT.Color.interpolate([97, 65, 38], [255, 0, 0], this._health/100);
+  Game.display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
 }
 
 Zombie.prototype._anotherZombieAtCoordinates = function(x, y) {
@@ -290,6 +310,17 @@ Zombie.prototype._anotherZombieAtCoordinates = function(x, y) {
   if (Game.zombies.locations[key] == this._id) return false;
   if (key in Game.zombies.locations) return true;
   return false;
+}
+
+Zombie.prototype.takeDamage = function(damage) {
+  this._health -= damage;
+  if (this._health <= 0) {
+    var key = this._x + ',' + this._y;
+    delete Game.zombies.locations[this._x + ',' + this._y];
+    delete Game.zombies.lookupById[this._id];
+    Game.engine._scheduler.remove(this);
+    Game.zombieRate++;
+  }
 }
 
 function convertMapCoordinatesToScreen(x, y) {
@@ -300,6 +331,16 @@ function convertMapCoordinatesToScreen(x, y) {
   var screenTopLeftY = Math.floor(screenHeight/2.0) - Game.player.getY();
 
   return [x + screenTopLeftX, y + screenTopLeftY];
+}
+
+function convertScreenCoordinatesToMap(x, y) {
+  var screenWidth = Game.display._options.width;
+  var screenHeight = Game.display._options.height;
+
+  var mapTopLeftX = Game.player.getX() - Math.floor(screenWidth/2.0);
+  var mapTopLeftY = Game.player.getY() - Math.floor(screenHeight/2.0);
+
+  return [x + mapTopLeftX, y + mapTopLeftY];
 }
 
 function createBeing(what, freeCells) {
@@ -318,14 +359,14 @@ function createBeing(what, freeCells) {
   return new what(x, y, createBeing.idCounter);
 }
 
-var previouslyHighlighted = [];
+var currentlyAimed = [];
 
 var aim = function(e) {
-  for (var i = 0; i < previouslyHighlighted.length; i++) {
-    point = previouslyHighlighted[i];
+  for (var i = 0; i < currentlyAimed.length; i++) {
+    point = currentlyAimed[i];
     Game._drawCell(point[0], point[1]);
   }
-  previouslyHighlighted = [];
+  currentlyAimed = [];
 
   var cellX = e.offsetX / e.currentTarget.clientWidth * Game.display._options.width;
   cellX = Math.floor(cellX);
@@ -350,9 +391,27 @@ var aim = function(e) {
         
         if (intensity > 20) {
           Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
-          previouslyHighlighted.push([x, y]);
+          currentlyAimed.push([x, y, intensity]);
         }
       }
     }
   }
+}
+
+var fire = function(e) {
+  for (var i = 0; i < currentlyAimed.length; i++) {
+    point = convertScreenCoordinatesToMap(currentlyAimed[i][0], currentlyAimed[i][1]);
+
+    key = point[0] + ',' + point[1];
+    if (key in Game.zombies.locations) {
+      var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
+      var intensity = currentlyAimed[i][2];
+      zombie.takeDamage(intensity);
+    }
+  }
+
+  Game.display.getContainer().removeEventListener('mousemove', aim);
+  Game.display.getContainer().removeEventListener('mouseup', fire);
+  window.removeEventListener("keydown", this);
+  Game.engine.unlock();
 }

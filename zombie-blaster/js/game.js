@@ -10,11 +10,13 @@ var Game = {
   floorCells: [],
   
   init: function() {
-    this.display = new ROT.Display({spacing:1.1});
+    this.statusChunkSize = 40;
+    this.mapChunkSize = 80;
+    this.display = new ROT.Display({spacing:1.1, width:this.statusChunkSize + this.mapChunkSize, height:24});
     document.body.appendChild(this.display.getContainer());
     
     this._generateMap();
-    this._drawWholeMap();
+    this._drawScreen();
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);
@@ -81,19 +83,21 @@ var Game = {
     }
   },
   
-  _drawWholeMap: function() {
-    for (var x = 0; x < this.display._options.width; x++) {
+  _drawScreen: function() {
+    for (var x = this.statusChunkSize; x < this.display._options.width; x++) {
       for (var y = 0; y <= this.display._options.height; y++) {
         this._drawCell(x, y);
       }
     }
+
+    this._drawStatusSection();
   },
 
   _drawCell: function(screenX, screenY, background) {
-    var screenWidth = this.display._options.width;
+    var screenWidthOfMap = this.mapChunkSize;
     var screenHeight = this.display._options.height;
 
-    var mapOffsetX = this.player.getX() - Math.floor(screenWidth/2.0);
+    var mapOffsetX = this.player.getX() - Math.floor(this.mapChunkSize/2.0 + this.statusChunkSize);
     var mapOffsetY = this.player.getY() - Math.floor(screenHeight/2.0);
 
     var mapX = screenX + mapOffsetX;
@@ -116,6 +120,12 @@ var Game = {
       } else {
         this.display.draw(screenX, screenY, this.map[mapX][mapY], '#aaa', background);
       }
+    }
+  },
+
+  _drawStatusSection: function() {
+    for (var y = 0; y < this.display._options.height; y++) {
+      this.display.draw(this.statusChunkSize - 1, y, '|');
     }
   },
 
@@ -160,7 +170,7 @@ Player.prototype.getY = function() { return this._y; }
 
 Player.prototype.act = function() {
   Game.generateNewZombies();
-  Game._drawWholeMap();
+  Game._drawScreen();
   Game.engine.lock();
   window.addEventListener("keydown", this);
   if (this._ammo > 0) {
@@ -329,20 +339,20 @@ Zombie.prototype.takeDamage = function(damage) {
 }
 
 function convertMapCoordinatesToScreen(x, y) {
-  var screenWidth = Game.display._options.width;
+  var screenWidth = Game.mapChunkSize;
   var screenHeight = Game.display._options.height;
 
-  var screenTopLeftX = Math.floor(screenWidth/2.0) - Game.player.getX();
+  var screenTopLeftX = Math.floor(screenWidth/2.0) + Game.statusChunkSize - Game.player.getX();
   var screenTopLeftY = Math.floor(screenHeight/2.0) - Game.player.getY();
 
   return [x + screenTopLeftX, y + screenTopLeftY];
 }
 
 function convertScreenCoordinatesToMap(x, y) {
-  var screenWidth = Game.display._options.width;
+  var screenWidth = Game.mapChunkSize;
   var screenHeight = Game.display._options.height;
 
-  var mapTopLeftX = Game.player.getX() - Math.floor(screenWidth/2.0);
+  var mapTopLeftX = Game.player.getX() - (Math.floor(screenWidth/2.0) + + Game.statusChunkSize);
   var mapTopLeftY = Game.player.getY() - Math.floor(screenHeight/2.0);
 
   return [x + mapTopLeftX, y + mapTopLeftY];
@@ -377,7 +387,8 @@ var aim = function(e) {
   cellX = Math.floor(cellX);
   var cellY = e.offsetY / e.currentTarget.clientHeight * Game.display._options.height;
   cellY = Math.floor(cellY);
-  var playerCellX = Math.floor(Game.display._options.width / 2.0);
+
+  var playerCellX = Math.floor(Game.mapChunkSize/2.0 + Game.statusChunkSize);
   var playerCellY = Math.floor(Game.display._options.height / 2.0);
 
   var arcStart = rotate([playerCellX, playerCellY], [cellX, cellY], -25);

@@ -143,6 +143,7 @@ Player.prototype.getX = function() { return this._x; }
 Player.prototype.getY = function() { return this._y; }
 
 Player.prototype.act = function() {
+  Game._drawWholeMap();
   Game.engine.lock();
   window.addEventListener("keydown", this);
   Game.display.getContainer().addEventListener('mousemove', aim);
@@ -176,8 +177,6 @@ Player.prototype.handleEvent = function(e) {
 
   this._x = newX;
   this._y = newY;
-  Game._drawWholeMap();
-  this._draw();
   window.removeEventListener("keydown", this);
   Game.display.getContainer().removeEventListener('mousemove', aim);
   Game.engine.unlock();
@@ -204,7 +203,6 @@ var Zombie = function(x, y, id) {
   this._x = x;
   this._y = y;
   this._id = id;
-  this._draw();
 }
   
 Zombie.prototype.getSpeed = function() { return 100; }
@@ -251,7 +249,6 @@ Zombie.prototype.act = function() {
       this._x = newX;
       this._y = newY;
       Game.zombies.locations[newX + ',' + newY] = this._id;
-      this._draw();
     }
 
     return;
@@ -281,9 +278,6 @@ Zombie.prototype.act = function() {
     this._x = x;
     this._y = y;
     Game.zombies.locations[this._x + ',' + this._y] = this._id;
-    this._draw();
-  } else {
-    this._draw();
   }
 }
   

@@ -319,7 +319,9 @@ Zombie.prototype.takeDamage = function(damage) {
     delete Game.zombies.locations[this._x + ',' + this._y];
     delete Game.zombies.lookupById[this._id];
     Game.engine._scheduler.remove(this);
-    Game.zombieRate++;
+    if (ROT.RNG.getUniform() < 0.2) {
+      Game.zombieRate++;
+    }
   }
 }
 

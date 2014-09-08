@@ -374,30 +374,57 @@ var aim = function(e) {
   cellX = Math.floor(cellX);
   var cellY = e.offsetY / e.currentTarget.clientHeight * Game.display._options.height;
   cellY = Math.floor(cellY);
-
   var playerCellX = Math.floor(Game.display._options.width / 2.0);
   var playerCellY = Math.floor(Game.display._options.height / 2.0);
+
+  var arcStart = rotate([playerCellX, playerCellY], [cellX, cellY], -25);
+  arcStart = [Math.ceil(arcStart[0]), Math.ceil(arcStart[1])];
+  var arcEnd = rotate([playerCellX, playerCellY], [cellX, cellY], 25);
+  arcEnd = [Math.ceil(arcEnd[0]), Math.ceil(arcEnd[1])];
+
   var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)));
-  var gunEffectiveRange = 4;
+
+  var lethalRange = 4;
+  var effectiveRange = 10;
 
   for (var x = playerCellX - radius; x < playerCellX + radius; x++) {
     for (var y = playerCellY - radius; y < playerCellY + radius; y++) {
       var distanceToCell = Math.floor(Math.sqrt(Math.pow(playerCellX - x, 2) + Math.pow(playerCellY - y, 2)));
-      if (distanceToCell < radius) {
+      if (distanceToCell > effectiveRange) {
+        continue;
+      } else if (pointInTriangle([x, y], [playerCellX, playerCellY], arcStart, arcEnd)) {
         var intensity;
-        if (distanceToCell < gunEffectiveRange) {
+        if (distanceToCell <= lethalRange) {
           intensity = 150;
         } else {
-          intensity = Math.floor(255 * 1/distanceToCell * 1.4);
+          intensity = (effectiveRange - distanceToCell) / effectiveRange * 150;
         }
-        
-        if (intensity > 20) {
-          Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
-          currentlyAimed.push([x, y, intensity]);
-        }
+
+        Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
+        currentlyAimed.push([x, y, intensity]);
       }
     }
   }
+}
+
+function rotate(center, point, degrees) {
+  var rad = degrees * Math.PI / 180;
+  var x = center[0] + (point[0] - center[0]) * Math.cos(rad) + (center[1] - point[1]) * Math.sin(rad);
+  var y = center[1] + (point[1] - center[1]) * Math.cos(rad) + (point[0] - center[0]) * Math.sin(rad);
+  return [x, y];
+}
+
+function pointInTriangle(pt, v1, v2, v3) {
+  var b1, b2, b3;
+  b1 = sign(pt, v1, v2) < 0;
+  b2 = sign(pt, v2, v3) < 0;
+  b3 = sign(pt, v3, v1) < 0;
+
+  return ((b1 == b2) && (b2 == b3));
+}
+
+function sign(p1, p2, p3) {
+  return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
 }
 
 var fire = function(e) {

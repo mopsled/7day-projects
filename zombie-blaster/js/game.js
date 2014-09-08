@@ -8,6 +8,7 @@ var Game = {
   zombies: {},
   zombieRate: 1,
   floorCells: [],
+  status: '',
   
   init: function() {
     this.statusChunkSize = 40;
@@ -124,9 +125,16 @@ var Game = {
   },
 
   _drawStatusSection: function() {
+    var sizeX = this.statusChunkSize;
+
     for (var y = 0; y < this.display._options.height; y++) {
-      this.display.draw(this.statusChunkSize - 1, y, '|');
+      this.display.draw(sizeX - 1, y, '|');
     }
+
+    var title = 'Zombie Blaster';
+    this.display.drawText(Math.floor((sizeX - title.length) / 2), 0, title);
+
+    this.display.drawText(0, 2, this.status, sizeX - 1);
   },
 
   invalidScreenCoordinate: function(x, y) {
@@ -220,13 +228,13 @@ Player.prototype._draw = function(x, y, background) {
 Player.prototype._checkBox = function() {
   var key = this._x + "," + this._y;
   if (Game.map[this._x][this._y] != "*") {
-    alert("There is no box here!");
+    Game.status = 'There is no box here!';
   } else if (key == Game.ananas) {
-    alert("Hooray! You found an ananas and won this game.");
+    Game.status = 'Hooray! You found an ananas and won this game.';
     Game.engine.lock();
     window.removeEventListener("keydown", this);
   } else {
-    alert("This box is empty :-(");
+    Game.status = 'This box is empty :-(';
   }
 }
   
@@ -301,8 +309,9 @@ Zombie.prototype.act = function() {
 
   path.shift();
   if (path.length == 1) {
+    Game.status = '%c{red}Game over - you were eated by a Zombie!';
+    Game._drawScreen();
     Game.engine.lock();
-    alert("Game over - you were captured by Zombie!");
   } else if (path.length > 1) {
     delete Game.zombies.locations[this._x + ',' + this._y];
     x = path[0][0];

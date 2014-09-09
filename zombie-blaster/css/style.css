@@ -3,9 +3,7 @@ body {
 }
 
 canvas {
-    padding-left: 0;
-    padding-right: 0;
-    margin-left: auto;
-    margin-right: auto;
+    padding: 0;
+    margin: 3em auto;
     display: block;
 }

@@ -4,20 +4,21 @@ var Game = {
   engine: null,
   player: null,
   pedro: null,
-  ananas: null,
   zombies: {},
   zombieRate: 1,
   floorCells: [],
   status: '',
+  stats: {zombiesKilled: 0, turns: 0},
   
   init: function() {
-    this.statusChunkSize = 40;
+    this.statusChunkSize = 30;
     this.mapChunkSize = 80;
     this.display = new ROT.Display({spacing:1.1, width:this.statusChunkSize + this.mapChunkSize, height:24});
     document.body.appendChild(this.display.getContainer());
     
     this._generateMap();
     this._drawScreen();
+    this.setStatus("%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nSpace to loot");
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);
@@ -73,14 +74,13 @@ var Game = {
   },
   
   _generateBoxes: function(freeCells) {
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 500; i++) {
       var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
       var key = freeCells.splice(index, 1)[0];
       var parts = key.split(",");
       var x = parseInt(parts[0]);
       var y = parseInt(parts[1]);
       this.map[x][y] = "*";
-      if (i == 0) { this.ananas = key; }
     }
   },
   
@@ -134,7 +134,21 @@ var Game = {
     var title = 'Zombie Blaster';
     this.display.drawText(Math.floor((sizeX - title.length) / 2), 0, title);
 
-    this.display.drawText(0, 2, this.status, sizeX - 1);
+    for (var x = 0; x < sizeX - 1; x++) {
+      for (var y = 2; y < 8; y++) {
+        this.display.draw(x, y, ' ');
+      }
+    }
+    this.display.drawText(1, 2, this.status, sizeX - 3);
+
+    this.display.drawText(1, 19, 'Ammo: ' + ('     ' + this.player._ammo).slice(-5), sizeX - 3);
+    this.display.drawText(1, 20, 'Turns: ' + ('    ' + this.stats.turns).slice(-4), sizeX - 3);
+    this.display.drawText(1, 21, 'Zombies Killed: ' + this.stats.zombiesKilled, sizeX - 3);
+  },
+
+  setStatus: function(status) {
+    Game.status = status;
+    this._drawStatusSection();
   },
 
   invalidScreenCoordinate: function(x, y) {
@@ -218,6 +232,7 @@ Player.prototype.handleEvent = function(e) {
   window.removeEventListener("keydown", this);
   Game.display.getContainer().removeEventListener('mousemove', aim);
   Game.display.getContainer().removeEventListener('mouseup', fire);
+  Game.stats.turns++;
   Game.engine.unlock();
 }
 
@@ -226,15 +241,12 @@ Player.prototype._draw = function(x, y, background) {
 }
   
 Player.prototype._checkBox = function() {
-  var key = this._x + "," + this._y;
-  if (Game.map[this._x][this._y] != "*") {
-    Game.status = 'There is no box here!';
-  } else if (key == Game.ananas) {
-    Game.status = 'Hooray! You found an ananas and won this game.';
-    Game.engine.lock();
-    window.removeEventListener("keydown", this);
-  } else {
-    Game.status = 'This box is empty :-(';
+  var key = this._x + ',' + this._y;
+  if (Game.map[this._x][this._y] === '*') {
+    var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 6;
+    Game.player._ammo += ammoAmount;
+    Game.setStatus('%c{green}You found ' + ammoAmount + ' shells');
+    Game.map[this._x][this._y] = '.';
   }
 }
   
@@ -309,7 +321,7 @@ Zombie.prototype.act = function() {
 
   path.shift();
   if (path.length == 1) {
-    Game.status = '%c{red}Game over - you were eated by a Zombie!';
+    Game.setStatus('%c{red}Game over - you were eaten by a Zombie!');
     Game._drawScreen();
     Game.engine.lock();
   } else if (path.length > 1) {
@@ -341,10 +353,13 @@ Zombie.prototype.takeDamage = function(damage) {
     delete Game.zombies.locations[this._x + ',' + this._y];
     delete Game.zombies.lookupById[this._id];
     Game.engine._scheduler.remove(this);
+    Game.stats.zombiesKilled++;
     if (ROT.RNG.getUniform() < 0.2) {
       Game.zombieRate++;
     }
+    return true;
   }
+  return false;
 }
 
 function convertMapCoordinatesToScreen(x, y) {
@@ -433,15 +448,35 @@ var aim = function(e) {
 
 var fire = function(e) {
   Game.player._ammo--;
+  var zombiesHit = 0;
+  var zombiesDied = 0;
+
   for (var i = 0; i < currentlyAimed.length; i++) {
     point = convertScreenCoordinatesToMap(currentlyAimed[i][0], currentlyAimed[i][1]);
-
     key = point[0] + ',' + point[1];
+
     if (key in Game.zombies.locations) {
       var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
       var intensity = currentlyAimed[i][2];
-      zombie.takeDamage(intensity);
+      var died = zombie.takeDamage(intensity);
+      if (died) {
+        zombiesDied++;
+      } else {
+        zombiesHit++;
+      }
     }
+  }
+
+  var diedConjugation = (zombiesDied == 1 ? '' : 's');
+  var hitConjugation = (zombiesHit == 1 ? '' : 's');
+  if (zombiesDied == 0 && zombiesHit == 0) {
+    Game.setStatus("%c{yellow}Your blast shoots harmlessly into the distance")
+  } else if (zombiesDied > 0 && zombiesHit > 0) {
+    Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation + ' and injured ' + zombiesHit + ' other' + hitConjugation);
+  } else if (zombiesDied > 0) {
+    Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation);
+  } else if (zombiesHit > 0) {
+    Game.setStatus("%c{green}That blast hurt " + zombiesHit + " zombie" + hitConjugation);
   }
 
   Game.display.getContainer().removeEventListener('mousemove', aim);

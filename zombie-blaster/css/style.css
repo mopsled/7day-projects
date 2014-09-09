@@ -3,9 +3,14 @@ body {
 }
 
 canvas {
+<<<<<<< HEAD
     padding-left: 0;
     padding-right: 0;
     margin-left: auto;
     margin-right: auto;
+=======
+    padding: 0;
+    margin: 3em auto;
+>>>>>>> 245609cd7d92f0ca3debc7ed033f387b1a6f2cd3
     display: block;
 }

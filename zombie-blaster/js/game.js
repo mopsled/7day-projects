@@ -18,7 +18,7 @@ var Game = {
     
     this._generateMap();
     this._drawScreen();
-    this.setStatus("%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nSpace to loot");
+    this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nSpace to loot');
     
     var scheduler = new ROT.Scheduler.Simple();
     scheduler.add(this.player, true);

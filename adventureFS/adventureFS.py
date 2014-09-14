@@ -8,88 +8,153 @@ from errno import ENOENT, EACCES
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
+import os
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
+class Item:
+	def __init__(self, name, description='An Item\n'):
+		self.name = name
+		self.description = description
+
+		now = time()
+		self._attributes = {
+			'st_mode': (S_IFREG | 0o444),
+			'st_ctime': now, 'st_mtime': now, 'st_atime': now,
+			'st_nlink': 1, 'st_size': len(self.description)}
+
+	def getAttributes(self):
+		return self._attributes
+
+class Location:
+	def __init__(self, name):
+		self.name = name
+		self._inside = []
+
+		now = time()
+		self._attributes = {
+			'st_mode': (S_IFDIR | 0o755),
+			'st_ctime': now, 'st_mtime': now, 'st_atime': now,
+			'st_nlink': 2}
+
+	def getInside(self):
+		return self._inside + [getInventory()]
+
+	def getAttributes(self):
+		return self._attributes
+	
+	def hold(self, thing):
+		self._inside.append(thing)
+
+	def unhold(self, thing):
+		self._inside.remove(thing)
+
+class LockedLocation(Location):
+	def __init__(self, name):
+		self.lockedWith = None
+		super(LockedLocation, self).__init__(name)
+
+	def lockWith(self, item):
+		self.lockedWith = item
+
+	def locked(self):
+		if self.lockedWith is None:
+			return False
+		elif self.lockedWith in getInventory().getInside():
+			return False
+		return True
+
+	def getAttributes(self):
+		if self.locked():
+			self._attributes['st_mode'] = (S_IFDIR | 0o000)
+		else:
+			self._attributes['st_mode'] = (S_IFDIR | 0o755)
+		return self._attributes
+
+class Inventory(Location):
+	def __init__(self):
+		super(Inventory, self).__init__('inventory')
+
+	def getInside(self):
+		return self._inside
+
+def getInventory():
+	return getInventory.inventory
+getInventory.inventory = Inventory()
+
 class AdventureFS(LoggingMixIn, Operations):
 	def __init__(self):
-		self.filesUnder = {}
-		self.fileAttributes = {}
-		self.data = defaultdict(bytes)
+		west = Location('west')
+		east = Location('east')
+		key = Item('key')
+		east.hold(key)
+
+		house = LockedLocation('house')
+		house.lockWith(key)
+		note = Item('note', 'You win!\n')
+		house.hold(note)
+
+		self.root = Location('root')
+		self.root.hold(west)
+		self.root.hold(east)
+		self.root.hold(house)
+
 		self.fd = 0
-		now = time()
-		self.fileAttributes['/'] = dict(st_mode=(S_IFDIR | 0755), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=2)
-		self.filesUnder['/'] = ['door', 'key']
-		self.fileAttributes['inventory'] = dict(st_mode=(S_IFDIR | 0755), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=3)
-		self.fileAttributes['/door'] = dict(st_mode=(S_IFDIR | 0000), st_ctime=now,
-											st_mtime=now, st_atime=now, st_nlink=3)
-		self.filesUnder['/door'] = ['message']
-		self.data['/door/message'] = 'You Win!\n'
-		self.fileAttributes['/door/message'] = dict(st_mode=(S_IFREG | 0666), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=1, st_size=len(self.data['/door/message']))
-		self.data['/key'] = 'A simple skeleton key\n'
-		self.fileAttributes['/key'] = dict(st_mode=(S_IFREG | 0666), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=1, st_size=len(self.data['/key']))
-		self.inventory = []
 
 	def access(self, path, mode):
-		if path == '/door' and not ('key' in self.inventory) and mode == 1:
-			raise FuseOSError(EACCES)
+		location = self.getLocation(path)
+		try:
+			if mode == 1 and location.locked():
+				raise FuseOSError(EACCES)
+		except AttributeError:
+			# Location doesn't respond to 'locked()'
+			pass
 
 	def getattr(self, path, fh=None):
-		if path.endswith('/inventory'):
-			path = 'inventory'
-		elif '/inventory/' in path:
-			item = path.split('/')[-1]
-			if item in self.inventory:
-				path = 'inventory/' + item
-				now = time()
-				attributes = dict(st_mode=(S_IFREG | 0666), st_ctime=now, st_mtime=now, st_atime=now, st_nlink=1)
-				if self.data[path]:
-					attributes['st_size'] = len(self.data[path])
-				return attributes
-
-		if path not in self.fileAttributes:
+		location = self.getLocation(path)
+		if location is None:
 			raise FuseOSError(ENOENT)
-
-		return self.fileAttributes[path]
+		else:
+			return location.getAttributes()
 
 	def getxattr(self, path, name, position=0):
-		if path.endswith('/inventory'):
-			path = 'inventory'
-
-		attrs = self.fileAttributes[path].get('attrs', {})
-
-		try:
-			return attrs[name]
-		except KeyError:
-			return ''       # Should return ENOATTR
+		return bytes()
 
 	def open(self, path, flags):
 		self.fd += 1
 		return self.fd
 
 	def read(self, path, size, offset, fh):
-		if '/inventory/' in path:
-			item = path.split('/')[-1]
-			if item in self.inventory:
-				path = 'inventory/' + item
-		return self.data[path][offset:offset + size]
+		location = self.getLocation(path)
+		return bytes(location.description[offset:offset + size], 'utf-8')
+		
 
 	def readdir(self, path, fh):
-		if path.endswith('/inventory'):
-			return ['.', '..'] + self.inventory
-		return ['.', '..', 'inventory'] + self.filesUnder[path]
+		location = self.getLocation(path)
+		return ['.', '..'] + [f.name for f in location.getInside()]
 
-	def rename(self, old, new):
-		if old == '/key' and new == '/inventory/key' and 'key' in self.filesUnder['/']:
-			self.inventory.append('key')
-			self.data['inventory/key'] = self.data['/key']
-			self.filesUnder['/'].remove('key')
-			del self.data['/key']
-		else:
-			raise FuseOSError(ENOENT)
+	def rename(self, oldPath, newPath):
+		item = self.getLocation(oldPath)
+		oldParent = self.getParentLocation(oldPath)
+		newParent = self.getParentLocation(newPath)
+		oldParent.unhold(item)
+		newParent.hold(item)
 
 	def statfs(self, path):
 		return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)
+
+	def getLocation(self, path):
+		location = self.root
+		for part in filter(None, path.split('/')):
+			inside = location.getInside()
+			location = next(filter(lambda x: x.name == part, inside), None)
+			if location is None:
+				return None
+		return location
+
+	def getParentLocation(self, path):
+		parentPath = os.path.dirname(path)
+		return self.getLocation(parentPath)
 
 if __name__ == '__main__':
 	if len(argv) != 2:

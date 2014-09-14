@@ -11,9 +11,6 @@ from time import time
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
-if not hasattr(__builtins__, 'bytes'):
-	bytes = str
-
 class AdventureFS(LoggingMixIn, Operations):
 	def __init__(self):
 		self.filesUnder = {}
@@ -34,7 +31,7 @@ class AdventureFS(LoggingMixIn, Operations):
 		self.inventory = []
 
 	def access(self, path, mode):
-		if path == '/door' and not ('key' in self.inventory):
+		if path == '/door' and not ('key' in self.inventory) and mode == 1:
 			raise FuseOSError(EACCES)
 
 	def getattr(self, path, fh=None):

@@ -4,7 +4,7 @@ import logging
 logging.basicConfig()
 
 from collections import defaultdict
-from errno import ENOENT, EACCES
+from errno import ENOENT, EACCES, EFBIG
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
@@ -43,8 +43,8 @@ class Location:
 	def getAttributes(self):
 		return self._attributes
 	
-	def hold(self, thing):
-		self._inside.append(thing)
+	def hold(self, *things):
+		self._inside.extend(things)
 
 	def unhold(self, thing):
 		self._inside.remove(thing)
@@ -86,7 +86,7 @@ class AdventureFS(LoggingMixIn, Operations):
 	def __init__(self):
 		west = Location('west')
 		east = Location('east')
-		key = Item('key')
+		key = Item('key', 'A simple skeleton key\n')
 		east.hold(key)
 
 		house = LockedLocation('house')
@@ -95,9 +95,7 @@ class AdventureFS(LoggingMixIn, Operations):
 		house.hold(note)
 
 		self.root = Location('root')
-		self.root.hold(west)
-		self.root.hold(east)
-		self.root.hold(house)
+		self.root.hold(west, east, house)
 
 		self.fd = 0
 
@@ -135,10 +133,14 @@ class AdventureFS(LoggingMixIn, Operations):
 
 	def rename(self, oldPath, newPath):
 		item = self.getLocation(oldPath)
-		oldParent = self.getParentLocation(oldPath)
-		newParent = self.getParentLocation(newPath)
-		oldParent.unhold(item)
-		newParent.hold(item)
+		if isinstance(item, Item):
+			item.name = os.path.basename(newPath) 
+			oldParent = self.getParentLocation(oldPath)
+			newParent = self.getParentLocation(newPath)
+			oldParent.unhold(item)
+			newParent.hold(item)
+		else:
+			raise FuseOSError(EFBIG)
 
 	def statfs(self, path):
 		return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)

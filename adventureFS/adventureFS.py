@@ -4,7 +4,7 @@ import logging
 logging.basicConfig()
 
 from collections import defaultdict
-from errno import ENOENT, EACCES, EFBIG
+from errno import ENOENT, EACCES, EFBIG, ENOKEY
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
@@ -16,6 +16,7 @@ class Item:
 	def __init__(self, name, description='An Item\n'):
 		self.name = name
 		self.description = description
+		self.movable = True
 
 		now = time()
 		self._attributes = {
@@ -27,8 +28,9 @@ class Item:
 		return self._attributes
 
 class Location:
-	def __init__(self, name):
+	def __init__(self, name, description=None):
 		self.name = name
+		self.description = description
 		self._inside = []
 
 		now = time()
@@ -38,7 +40,13 @@ class Location:
 			'st_nlink': 2}
 
 	def getInside(self):
-		return self._inside + [getInventory()]
+		defaults = self._inside + [getInventory()]
+		if self.description is None:
+			return defaults
+		else:
+			description = Item('description', self.description)
+			description.movable = False
+			return defaults + [description]
 
 	def getAttributes(self):
 		return self._attributes
@@ -50,9 +58,9 @@ class Location:
 		self._inside.remove(thing)
 
 class LockedLocation(Location):
-	def __init__(self, name):
+	def __init__(self, name, description=None):
+		super(LockedLocation, self).__init__(name, description)
 		self.lockedWith = None
-		super(LockedLocation, self).__init__(name)
 
 	def lockWith(self, item):
 		self.lockedWith = item
@@ -84,12 +92,12 @@ getInventory.inventory = Inventory()
 
 class AdventureFS(LoggingMixIn, Operations):
 	def __init__(self):
-		west = Location('west')
-		east = Location('east')
+		west = Location('west', 'mountains and wind\n')
+		east = Location('east', 'shoreline and sand\n')
 		key = Item('key', 'A simple skeleton key\n')
 		east.hold(key)
 
-		house = LockedLocation('house')
+		house = LockedLocation('house', 'old abandoned house\n')
 		house.lockWith(key)
 		note = Item('note', 'You win!\n')
 		house.hold(note)
@@ -103,7 +111,7 @@ class AdventureFS(LoggingMixIn, Operations):
 		location = self.getLocation(path)
 		try:
 			if mode == 1 and location.locked():
-				raise FuseOSError(EACCES)
+				raise FuseOSError(ENOKEY)
 		except AttributeError:
 			# Location doesn't respond to 'locked()'
 			pass
@@ -134,6 +142,8 @@ class AdventureFS(LoggingMixIn, Operations):
 	def rename(self, oldPath, newPath):
 		item = self.getLocation(oldPath)
 		if isinstance(item, Item):
+			if not item.movable:
+				raise FuseOSError(EACCES)
 			item.name = os.path.basename(newPath) 
 			oldParent = self.getParentLocation(oldPath)
 			newParent = self.getParentLocation(newPath)

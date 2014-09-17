@@ -31,6 +31,7 @@ def setupStory():
 		note = Item('note', 'you win')
 		attic.hold(note)
 		house.hold(attic)
+		poweredRemote.action = None
 	poweredRemote.action = openAttic
 
 	house.hold(battery)
@@ -58,6 +59,7 @@ class Item:
 class ActivatableItem(Item):
 	def __init__(self, name, description='magic item'):
 		super(ActivatableItem, self).__init__(name, description)
+		self._attributes['st_mode'] = (S_IFREG | 0o777)
 		self.action = None
 
 	def activate(self):

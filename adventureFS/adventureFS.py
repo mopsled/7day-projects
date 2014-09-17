@@ -4,7 +4,7 @@ import logging
 logging.basicConfig()
 
 from collections import defaultdict
-from errno import ENOENT, EACCES, EFBIG, ENOKEY
+from errno import ENOENT, EACCES, EFBIG
 from stat import S_IFDIR, S_IFLNK, S_IFREG
 from sys import argv, exit
 from time import time
@@ -13,7 +13,7 @@ import os
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
 class Item:
-	def __init__(self, name, description='An Item\n'):
+	def __init__(self, name, description='An item\n'):
 		self.name = name
 		self.description = description
 		self.movable = True
@@ -26,6 +26,15 @@ class Item:
 
 	def getAttributes(self):
 		return self._attributes
+
+class ActivatableItem(Item):
+	def __init__(self, name, description='An activatable item\n'):
+		super(ActivatableItem, self).__init__(name, description)
+		self.action = None
+
+	def activate(self):
+		if self.action is not None:
+			self.action()
 
 class Location:
 	def __init__(self, name, description=None):
@@ -99,9 +108,17 @@ class AdventureFS(LoggingMixIn, Operations):
 
 		house = LockedLocation('house', 'old abandoned house\n')
 		house.lockWith(key)
-		note = Item('note', 'You win!\n')
-		house.hold(note)
 
+		remoteControl = ActivatableItem('remote-control', 'a comically large remote control with one big button\n')
+		def openAttic():
+			attic = Location('attic', 'dusty and dark\n')
+			note = Item('note', 'You win!\n')
+			attic.hold(note)
+			house.hold(attic)
+		remoteControl.action = openAttic
+
+		house.hold(remoteControl)
+		
 		self.root = Location('root')
 		self.root.hold(west, east, house)
 
@@ -111,7 +128,7 @@ class AdventureFS(LoggingMixIn, Operations):
 		location = self.getLocation(path)
 		try:
 			if mode == 1 and location.locked():
-				raise FuseOSError(ENOKEY)
+				raise FuseOSError(EACCES)
 		except AttributeError:
 			# Location doesn't respond to 'locked()'
 			pass
@@ -151,6 +168,11 @@ class AdventureFS(LoggingMixIn, Operations):
 			newParent.hold(item)
 		else:
 			raise FuseOSError(EFBIG)
+
+	def utimens(self, path, times):
+		item = self.getLocation(path)
+		if isinstance(item, ActivatableItem):
+			item.activate()
 
 	def statfs(self, path):
 		return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)

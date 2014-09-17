@@ -23,6 +23,6 @@ Create a directory, mount adventureFS there, and use your terminal to play:
 Some useful terminal commands when playing in adventureFS:
 
 - `cd`: move between rooms
-- `mv`: put items in inventory
+- `mv`: put items in inventory, combine items
 - `cat`: inspect items
 - `touch`: activate items like buttons

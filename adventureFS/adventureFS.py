@@ -13,32 +13,14 @@ import os
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
 def setupStory():
-	west = Location('west', 'mountains and wind')
-	east = Location('east', 'shoreline and sand')
-	key = Item('key', 'skeleton key')
-	east.hold(key)
+	root = Location('neighborhood')
 
-	house = LockedLocation('house', 'old abandoned house')
-	house.lockWith(key)
+	prologue = Item('prologue', 'you are hungry')
+	park = Location('park', Item('description', 'unused swings hang on rusty chains. the grass is long overgrown'))
+	river = Location('river', Item('description', 'a torrent of cool water from the mountains'))
+	house = LockedLocation('house', Item('description', 'old abandoned house'))
+	root.hold(prologue, park, river, house)
 
-	battery = Item('battery', 'generic brand battery')
-	remote = Item('remote-control', 'lifeless plastic parasite')
-	poweredRemote = ActivatableItem('powered-remote-control', 'entertainment stick')
-	getCombiner().addFormula([battery, remote], poweredRemote)
-
-	def openAttic():
-		attic = Location('attic', 'dusty and dark')
-		note = Item('note', 'you win')
-		attic.hold(note)
-		house.hold(attic)
-		poweredRemote.action = None
-	poweredRemote.action = openAttic
-
-	house.hold(battery)
-	house.hold(remote)
-	
-	root = Location('root')
-	root.hold(west, east, house)
 	return root
 
 class Item:
@@ -56,6 +38,9 @@ class Item:
 	def getAttributes(self):
 		return self._attributes
 
+	def onTouched(self):
+		pass
+
 class ActivatableItem(Item):
 	def __init__(self, name, description='magic item'):
 		super(ActivatableItem, self).__init__(name, description)
@@ -66,11 +51,17 @@ class ActivatableItem(Item):
 		if self.action is not None:
 			self.action()
 
+class ActivatableItemOnTouch(ActivatableItem):
+	def wasTouched(self):
+		self.action()
+
 class Location:
-	def __init__(self, name, description=None):
+	def __init__(self, name, descriptionItem=None):
 		self.name = name
-		self.description = description
 		self._inside = []
+		if descriptionItem is not None:
+			descriptionItem.movable = False
+			self._inside.append(descriptionItem)
 
 		now = time()
 		self._attributes = {
@@ -79,13 +70,7 @@ class Location:
 			'st_nlink': 2}
 
 	def getInside(self):
-		defaults = self._inside + [getInventory()]
-		if self.description is None:
-			return defaults
-		else:
-			description = Item('description', self.description)
-			description.movable = False
-			return defaults + [description]
+		return self._inside + [getInventory()]
 
 	def getAttributes(self):
 		return self._attributes
@@ -181,7 +166,6 @@ class AdventureFS(LoggingMixIn, Operations):
 		location = self.getLocation(path)
 		return bytes(location.description[offset:offset + size], 'utf-8')
 		
-
 	def readdir(self, path, fh):
 		location = self.getLocation(path)
 		return ['.', '..'] + [f.name for f in location.getInside()]
@@ -210,8 +194,7 @@ class AdventureFS(LoggingMixIn, Operations):
 
 	def utimens(self, path, times):
 		item = self.getLocation(path)
-		if isinstance(item, ActivatableItem):
-			item.activate()
+		item.onTouched()
 
 	def statfs(self, path):
 		return dict(f_bsize=512, f_blocks=4096, f_bavail=2048)

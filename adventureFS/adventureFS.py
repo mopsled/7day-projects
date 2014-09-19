@@ -44,8 +44,28 @@ def setupStory():
 	poweredRemote = ActivatableItemOnTouch('powered-remote', 'entertainment stick')
 	def openBookcase():
 		livingRoom.unhold(bookcase)
-		bookcaseLocation = Location('bookcase', 'staircases lead up and down')
-		livingRoom.hold(bookcaseLocation)
+
+		ajarBookcase = Location('ajar-bookcase', 'staircases lead up and down')
+		attic = Location('attic', 'dark and dusty')
+		pictures = Item('pictures', 'a whole family of easily forgotten faces')
+		attic.hold(pictures)
+
+		basement = Location('basement', 'dark. you feel a switch on the wall')
+		lightSwitch = ActivatableItemOnTouch('switch')
+		def illuminateBasement():
+			basement.setDescription('small shadows scuttle in the corners')
+			bombShelter = Location('bomb-shelter', 'mostly scavenged concrete tomb')
+			cannedFood = Item('canned-food', 'preserved precooked meat product')
+			bombShelter.hold(cannedFood)
+
+			def showEpilogue():
+				epilogue = Item('epilogue', "this is the first time you've eaten all week. your voracious appetite doesn't allow you to savor any bite. the can quickly becomes empty. you'll rest for now, and face the world again tomorrow")
+				bombShelter.hold(epilogue)
+			getCombiner.addFormulaWithAction([cannedFood, knife], showEpilogue)
+			basement.hold(bombShelter)
+
+		ajarBookcase.hold(attic, basement)
+		livingRoom.hold(ajarBookcase)
 	poweredRemote.action = openBookcase
 	getCombiner().addFormula([deadRemote, battery], poweredRemote)
 
@@ -97,9 +117,7 @@ class Location:
 		self.name = name
 		self._inside = []
 		if description is not None:
-			descriptionItem = Item('description', description)
-			descriptionItem.movable = False
-			self._inside.append(descriptionItem)
+			self.setDescription(description)
 
 		now = time()
 		self._attributes = {
@@ -118,6 +136,12 @@ class Location:
 
 	def unhold(self, thing):
 		self._inside.remove(thing)
+
+	def setDescription(self, description):
+		self._inside = [item for item in self._inside if item.name != '_description']
+		descriptionItem = Item('_description', description)
+		descriptionItem.movable = False
+		self._inside.append(descriptionItem)
 
 class LockedLocation(Location):
 	def __init__(self, name, description=None):
@@ -143,7 +167,7 @@ class LockedLocation(Location):
 
 class Inventory(Location):
 	def __init__(self):
-		super(Inventory, self).__init__('inventory')
+		super(Inventory, self).__init__('_inventory')
 
 	def getInside(self):
 		return self._inside
@@ -157,13 +181,20 @@ class ItemCombiner:
 		self.formulae = defaultdict(None)
 
 	def addFormula(self, items, result):
-		self.formulae[self.setForItems(items)] = result
+		def action():
+			return result
+		self.addFormulaWithAction(items, action)
+
+	def addFormulaWithAction(self, items, action):
+		self.formulae[self.setForItems(items)] = action
 
 	def canCombine(self, *items):
 		return self.setForItems(items) in self.formulae
 
 	def combine(self, *items):
-		return self.formulae.get(self.setForItems(items), None)
+		action = self.formulae.get(self.setForItems(items), None)
+		if action is not None:
+			return action()
 
 	def setForItems(self, items):
 		return frozenset([i.description for i in items])

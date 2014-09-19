@@ -15,10 +15,47 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 def setupStory():
 	root = Location('neighborhood')
 
-	prologue = Item('prologue', 'you are hungry')
-	park = Location('park', Item('description', 'unused swings hang on rusty chains. the grass is long overgrown'))
-	river = Location('river', Item('description', 'a torrent of cool water from the mountains'))
-	house = LockedLocation('house', Item('description', 'old abandoned house'))
+	river = Location('river', 'a torrent of cool water from the mountains')
+	key = Item('key', 'single key on corroded key chain')
+	river.hold(key)
+
+	house = LockedLocation('house', 'old abandoned house')
+	house.lockWith(key)
+	
+	bedroom = Location('bedroom', 'rotted bed against the wall, closet in the corner')
+	closet = Location('closet', 'dark, smells like mildew')
+	battery = Item('battery', 'generic brand battery')
+	closet.hold(battery)
+	bedroom.hold(closet)
+
+	livingRoom = Location('living-room', 'torn carpet, couch has been propped against a window')
+	tv = Item('tv', "blares static but it doesn't seem to be plugged in")
+	tv.movable = False
+	couch = Item('couch', 'ugly patterned monstrosity')
+	couch.movable = False
+	bookcase = Item('bookcase', 'untouched playthings for the literate')
+	bookcase.movable = False
+	livingRoom.hold(tv, couch, bookcase)
+
+	kitchen = Location('kitchen', 'utensils are gone, table is broken')
+	deadRemote = Item('remote-control', 'lifeless plastic parasite')
+	kitchen.hold(deadRemote)
+
+	poweredRemote = ActivatableItemOnTouch('powered-remote', 'entertainment stick')
+	def openBookcase():
+		livingRoom.unhold(bookcase)
+		bookcaseLocation = Location('bookcase', 'staircases lead up and down')
+		livingRoom.hold(bookcaseLocation)
+	poweredRemote.action = openBookcase
+	getCombiner().addFormula([deadRemote, battery], poweredRemote)
+
+	house.hold(bedroom, livingRoom, kitchen)
+
+	park = Location('park', 'unused swings hang on rusty chains. the grass is long overgrown')
+	knife = Item('knife', 'discolored stainless steal')
+	park.hold(knife)
+
+	prologue = Item('prologue', "you are hungry. it's been days")
 	root.hold(prologue, park, river, house)
 
 	return root
@@ -52,14 +89,15 @@ class ActivatableItem(Item):
 			self.action()
 
 class ActivatableItemOnTouch(ActivatableItem):
-	def wasTouched(self):
+	def onTouched(self):
 		self.action()
 
 class Location:
-	def __init__(self, name, descriptionItem=None):
+	def __init__(self, name, description=None):
 		self.name = name
 		self._inside = []
-		if descriptionItem is not None:
+		if description is not None:
+			descriptionItem = Item('description', description)
 			descriptionItem.movable = False
 			self._inside.append(descriptionItem)
 

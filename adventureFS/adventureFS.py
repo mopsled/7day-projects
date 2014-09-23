@@ -47,7 +47,7 @@ def setupStory():
 
 		ajarBookcase = Location('ajar-bookcase', 'staircases lead up and down')
 		attic = Location('attic', 'dark and dusty')
-		pictures = Item('pictures', 'a whole family of easily forgotten faces')
+		pictures = Item('pictures', 'whole family of easily forgotten faces')
 		attic.hold(pictures)
 
 		basement = Location('basement', 'dark. you feel a switch on the wall')
@@ -61,11 +61,15 @@ def setupStory():
 			def showEpilogue():
 				epilogue = Item('epilogue', "this is the first time you've eaten all week. your voracious appetite doesn't allow you to savor any bite. the can quickly becomes empty. you'll rest for now, and face the world again tomorrow")
 				bombShelter.hold(epilogue)
-			getCombiner.addFormulaWithAction([cannedFood, knife], showEpilogue)
+
+			getCombiner().addFormulaWithAction([cannedFood, knife], showEpilogue)
 			basement.hold(bombShelter)
+		lightSwitch.action = illuminateBasement
+		basement.hold(lightSwitch)
 
 		ajarBookcase.hold(attic, basement)
 		livingRoom.hold(ajarBookcase)
+
 	poweredRemote.action = openBookcase
 	getCombiner().addFormula([deadRemote, battery], poweredRemote)
 
@@ -110,7 +114,9 @@ class ActivatableItem(Item):
 
 class ActivatableItemOnTouch(ActivatableItem):
 	def onTouched(self):
-		self.action()
+		if self.action is not None:
+			self.action()
+			self.action = None
 
 class Location:
 	def __init__(self, name, description=None):
@@ -252,10 +258,11 @@ class AdventureFS(LoggingMixIn, Operations):
 				oldParent.unhold(item)
 				newParent.hold(item)
 			elif getCombiner().canCombine(item, combiningItem):
-				combined = getCombiner().combine(item, combiningItem)
 				oldParent.unhold(item)
 				newParent.unhold(combiningItem)
-				newParent.hold(combined)
+				combined = getCombiner().combine(item, combiningItem)
+				if combined is not None:
+					newParent.hold(combined)
 			else:
 				raise FuseOSError(EEXIST)
 		else:

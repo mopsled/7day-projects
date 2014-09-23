@@ -16,8 +16,11 @@ Running adventureFS
 
 Create a directory, mount adventureFS there, and use your terminal to play:
 
-	> mkdir game
+    > mkdir game
     > python3 adventureFS.py game
+    # This will mount the file system on the current process and output logs to the terminal window
+    
+    # Open a new terminal and enter the file system directory
     > cd game
 
 Some useful terminal commands when playing in adventureFS:

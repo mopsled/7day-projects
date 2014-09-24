@@ -15,3 +15,8 @@ I rarely finish projects. That's because I usually have conflicting motives:
 The purpose of this repository is to rekinder the spirit of creativity by limiting projects to be simple enough to complete in a week. There's still room to try to achieve the lofty goals of previous projects, but in a constrained way, such that I can still produce something at the end.
 
 There's going to be some ugly babies in these projects, but that's part of the point. With an emphasis on shipping and constraint, I was to see what's possible a week at a time.
+
+License
+-------
+
+Unless otherwise stated, all code in this repository is released under GPLv3. Please contact me if you'd like something more permissive.

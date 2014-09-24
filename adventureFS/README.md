@@ -29,3 +29,10 @@ Some useful terminal commands when playing in adventureFS:
 - `mv`: put items in inventory, combine items
 - `cat`: inspect items
 - `touch`: activate items like buttons
+
+The game is short, and can be finished in 5 minutes or so. It's mostly a proof-of-concept, so if you'd like to add to or change the story, please fork and do so. The ending could use some work.
+
+Influences
+----------
+
+adventureFS' storyline borrows heavily from [A Dark Room](http://adarkroom.doublespeakgames.com/) in writing style and atmosphere.

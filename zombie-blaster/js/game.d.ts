@@ -83,11 +83,19 @@ interface Shootable {
     fire(e: MouseEvent): any;
 }
 declare class Shotgun {
-    currentlyAimed: number[][];
+    currentlyAimed: {
+        point: Point;
+        intensity: number;
+    }[];
     constructor();
     aim(e: MouseEvent): void;
     fire(e: MouseEvent): void;
 }
-declare function rotate(center: number[], point: number[], degrees: number): number[];
-declare function pointInTriangle(pt: number[], v1: number[], v2: number[], v3: number[]): boolean;
+declare class Point {
+    x: number;
+    y: number;
+    constructor(x: number, y: number);
+}
+declare function rotate(center: Point, point: Point, degrees: number): Point;
+declare function pointInTriangle(pt: Point, v1: Point, v2: Point, v3: Point): boolean;
 declare function sign(p1: any, p2: any, p3: any): number;

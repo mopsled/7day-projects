@@ -472,7 +472,7 @@ interface Shootable {
 }
 
 class Shotgun {
-  currentlyAimed: number[][];
+  currentlyAimed: {point: Point; intensity: number}[];
 
   constructor() {
     this.currentlyAimed = [];
@@ -480,8 +480,8 @@ class Shotgun {
 
   aim(e: MouseEvent) {
     for (var i = 0; i < this.currentlyAimed.length; i++) {
-      var point = this.currentlyAimed[i];
-      Game._drawCell(point[0], point[1]);
+      var cell = this.currentlyAimed[i];
+      Game._drawCell(cell.point.x, cell.point.y);
     }
     this.currentlyAimed = [];
 
@@ -493,10 +493,10 @@ class Shotgun {
     var playerCellX = Math.floor(Game.mapChunkSize/2.0 + Game.statusChunkSize);
     var playerCellY = Math.floor(Game.display.getOptions().height / 2.0);
 
-    var arcStart = rotate([playerCellX, playerCellY], [cellX, cellY], -25);
-    arcStart = [Math.ceil(arcStart[0]), Math.ceil(arcStart[1])];
-    var arcEnd = rotate([playerCellX, playerCellY], [cellX, cellY], 25);
-    arcEnd = [Math.ceil(arcEnd[0]), Math.ceil(arcEnd[1])];
+    var arcStart = rotate(new Point(playerCellX, playerCellY), new Point(cellX, cellY), -25);
+    arcStart = new Point(Math.ceil(arcStart.x), Math.ceil(arcStart.y));
+    var arcEnd = rotate(new Point(playerCellX, playerCellY), new Point(cellX, cellY), 25);
+    arcEnd = new Point(Math.ceil(arcEnd.x), Math.ceil(arcEnd.y));
 
     var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)));
 
@@ -509,7 +509,7 @@ class Shotgun {
         var distanceToCell = Math.floor(Math.sqrt(Math.pow(playerCellX - x, 2) + Math.pow(playerCellY - y, 2)));
         if (distanceToCell > effectiveRange) {
           continue;
-        } else if (pointInTriangle([x, y], [playerCellX, playerCellY], arcStart, arcEnd)) {
+        } else if (pointInTriangle(new Point(x, y), new Point(playerCellX, playerCellY), arcStart, arcEnd)) {
           var intensity;
           if (distanceToCell <= lethalRange) {
             intensity = 150;
@@ -518,7 +518,7 @@ class Shotgun {
           }
 
           Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
-          this.currentlyAimed.push([x, y, intensity]);
+          this.currentlyAimed.push({point: new Point(x, y), intensity: intensity});
         }
       }
     }
@@ -530,12 +530,12 @@ class Shotgun {
     var zombiesDied = 0;
 
     for (var i = 0; i < this.currentlyAimed.length; i++) {
-      var point = convertScreenCoordinatesToMap(this.currentlyAimed[i][0], this.currentlyAimed[i][1]);
+      var point = convertScreenCoordinatesToMap(this.currentlyAimed[i].point.x, this.currentlyAimed[i].point.y);
       var key = point[0] + ',' + point[1];
 
       if (key in Game.zombies.locations) {
         var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
-        var intensity = this.currentlyAimed[i][2];
+        var intensity = this.currentlyAimed[i].intensity;
         var died = zombie.takeDamage(intensity);
         if (died) {
           zombiesDied++;
@@ -565,14 +565,18 @@ class Shotgun {
   }
 }
 
-function rotate(center: number[], point: number[], degrees: number) {
-  var rad = degrees * Math.PI / 180;
-  var x = center[0] + (point[0] - center[0]) * Math.cos(rad) + (center[1] - point[1]) * Math.sin(rad);
-  var y = center[1] + (point[1] - center[1]) * Math.cos(rad) + (point[0] - center[0]) * Math.sin(rad);
-  return [x, y];
+class Point {
+  constructor(public x: number, public y: number) { }
 }
 
-function pointInTriangle(pt: number[], v1: number[], v2: number[], v3: number[]) {
+function rotate(center: Point, point: Point, degrees: number) {
+  var rad = degrees * Math.PI / 180;
+  var x = center.x + (point.x - center.x) * Math.cos(rad) + (center.y - point.y) * Math.sin(rad);
+  var y = center.y + (point.y - center.y) * Math.cos(rad) + (point.x - center.x) * Math.sin(rad);
+  return new Point(x, y);
+}
+
+function pointInTriangle(pt: Point, v1: Point, v2: Point, v3: Point) {
   var b1 = sign(pt, v1, v2) < 0;
   var b2 = sign(pt, v2, v3) < 0;
   var b3 = sign(pt, v3, v1) < 0;
@@ -581,5 +585,5 @@ function pointInTriangle(pt: number[], v1: number[], v2: number[], v3: number[])
 }
 
 function sign(p1, p2, p3) {
-  return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
+  return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 }

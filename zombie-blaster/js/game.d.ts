@@ -46,7 +46,10 @@ declare class Player {
     _y: number;
     _id: number;
     _ammo: number;
-    _eventListener: EventListener;
+    _keyboardEventListener: EventListener;
+    _mouseMoveEventListener: EventListener;
+    _mouseUpEventListener: EventListener;
+    _weapon: Shootable;
     constructor(x: any, y: any, id: any);
     getSpeed(): number;
     getX(): number;
@@ -75,9 +78,16 @@ interface FunctionWithNumberProperty {
     idCounter: number;
 }
 declare var createBeing: any;
-declare var currentlyAimed: any[];
-declare var aim: (e: MouseEvent) => void;
-declare var fire: (e: MouseEvent) => void;
+interface Shootable {
+    aim(e: MouseEvent): any;
+    fire(e: MouseEvent): any;
+}
+declare class Shotgun {
+    currentlyAimed: number[][];
+    constructor();
+    aim(e: MouseEvent): void;
+    fire(e: MouseEvent): void;
+}
 declare function rotate(center: number[], point: number[], degrees: number): number[];
 declare function pointInTriangle(pt: number[], v1: number[], v2: number[], v3: number[]): boolean;
 declare function sign(p1: any, p2: any, p3: any): number;

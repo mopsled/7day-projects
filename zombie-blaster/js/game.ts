@@ -216,13 +216,17 @@ class Player {
   _y: number;
   _id: number;
   _ammo: number;
-  _eventListener: EventListener;
+  _keyboardEventListener: EventListener;
+  _mouseMoveEventListener: EventListener;
+  _mouseUpEventListener: EventListener;
+  _weapon: Shootable;
 
   constructor(x, y, id) {
     this._x = x;
     this._y = y;
     this._id = id;
     this._ammo = 12;
+    this._weapon = new Shotgun();
   }
   
   getSpeed() { 
@@ -241,11 +245,13 @@ class Player {
     Game.generateNewZombies();
     Game._drawScreen();
     Game.engine.lock();
-    this._eventListener = (event: KeyboardEvent) => {this.handleEvent(event)};
-    window.addEventListener("keydown", this._eventListener);
+    this._keyboardEventListener = (event: KeyboardEvent) => {this.handleEvent(event)};
+    this._mouseMoveEventListener = (event: MouseEvent) => {Game.player._weapon.aim(event)};
+    this._mouseUpEventListener = (event: MouseEvent) => {Game.player._weapon.fire(event)};
+    window.addEventListener("keydown", this._keyboardEventListener);
     if (this._ammo > 0) {
-      Game.display.getContainer().addEventListener('mousemove', aim);
-      Game.display.getContainer().addEventListener('mouseup', fire);
+      Game.display.getContainer().addEventListener('mousemove', this._mouseMoveEventListener);
+      Game.display.getContainer().addEventListener('mouseup', this._mouseUpEventListener);
     }
   }
   
@@ -277,9 +283,9 @@ class Player {
 
     this._x = newX;
     this._y = newY;
-    window.removeEventListener("keydown", this._eventListener);
-    Game.display.getContainer().removeEventListener('mousemove', aim);
-    Game.display.getContainer().removeEventListener('mouseup', fire);
+    window.removeEventListener("keydown", this._keyboardEventListener);
+    Game.display.getContainer().removeEventListener('mousemove', this._mouseMoveEventListener);
+    Game.display.getContainer().removeEventListener('mouseup', this._mouseUpEventListener);
     Game.stats.turns++;
     Game.engine.unlock();
   }
@@ -460,91 +466,103 @@ var createBeing = <FunctionWithNumberProperty>function(what: any, freeCells: str
   return new what(x, y, createBeing.idCounter);
 }
 
-var currentlyAimed = [];
-
-var aim = function(e: MouseEvent) {
-  for (var i = 0; i < currentlyAimed.length; i++) {
-    var point = currentlyAimed[i];
-    Game._drawCell(point[0], point[1]);
-  }
-  currentlyAimed = [];
-
-  var cellX = e.offsetX / e.srcElement.clientWidth * Game.display.getOptions().width;
-  cellX = Math.floor(cellX);
-  var cellY = e.offsetY / e.srcElement.clientHeight * Game.display.getOptions().height;
-  cellY = Math.floor(cellY);
-
-  var playerCellX = Math.floor(Game.mapChunkSize/2.0 + Game.statusChunkSize);
-  var playerCellY = Math.floor(Game.display.getOptions().height / 2.0);
-
-  var arcStart = rotate([playerCellX, playerCellY], [cellX, cellY], -25);
-  arcStart = [Math.ceil(arcStart[0]), Math.ceil(arcStart[1])];
-  var arcEnd = rotate([playerCellX, playerCellY], [cellX, cellY], 25);
-  arcEnd = [Math.ceil(arcEnd[0]), Math.ceil(arcEnd[1])];
-
-  var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)));
-
-  var lethalRange = 4;
-  var effectiveRange = 10;
-
-  for (var x = playerCellX - radius; x < playerCellX + radius; x++) {
-    for (var y = playerCellY - radius; y < playerCellY + radius; y++) {
-      if (x === playerCellX && y === playerCellY) continue;
-      var distanceToCell = Math.floor(Math.sqrt(Math.pow(playerCellX - x, 2) + Math.pow(playerCellY - y, 2)));
-      if (distanceToCell > effectiveRange) {
-        continue;
-      } else if (pointInTriangle([x, y], [playerCellX, playerCellY], arcStart, arcEnd)) {
-        var intensity;
-        if (distanceToCell <= lethalRange) {
-          intensity = 150;
-        } else {
-          intensity = (effectiveRange - distanceToCell) / effectiveRange * 150;
-        }
-
-        Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
-        currentlyAimed.push([x, y, intensity]);
-      }
-    }
-  }
+interface Shootable {
+  aim(e: MouseEvent);
+  fire(e: MouseEvent);
 }
 
-var fire = function(e: MouseEvent) {
-  Game.player._ammo--;
-  var zombiesHit = 0;
-  var zombiesDied = 0;
+class Shotgun {
+  currentlyAimed: number[][];
 
-  for (var i = 0; i < currentlyAimed.length; i++) {
-    var point = convertScreenCoordinatesToMap(currentlyAimed[i][0], currentlyAimed[i][1]);
-    var key = point[0] + ',' + point[1];
+  constructor() {
+    this.currentlyAimed = [];
+  }
 
-    if (key in Game.zombies.locations) {
-      var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
-      var intensity = currentlyAimed[i][2];
-      var died = zombie.takeDamage(intensity);
-      if (died) {
-        zombiesDied++;
-      } else {
-        zombiesHit++;
+  aim(e: MouseEvent) {
+    for (var i = 0; i < this.currentlyAimed.length; i++) {
+      var point = this.currentlyAimed[i];
+      Game._drawCell(point[0], point[1]);
+    }
+    this.currentlyAimed = [];
+
+    var cellX = e.offsetX / e.srcElement.clientWidth * Game.display.getOptions().width;
+    cellX = Math.floor(cellX);
+    var cellY = e.offsetY / e.srcElement.clientHeight * Game.display.getOptions().height;
+    cellY = Math.floor(cellY);
+
+    var playerCellX = Math.floor(Game.mapChunkSize/2.0 + Game.statusChunkSize);
+    var playerCellY = Math.floor(Game.display.getOptions().height / 2.0);
+
+    var arcStart = rotate([playerCellX, playerCellY], [cellX, cellY], -25);
+    arcStart = [Math.ceil(arcStart[0]), Math.ceil(arcStart[1])];
+    var arcEnd = rotate([playerCellX, playerCellY], [cellX, cellY], 25);
+    arcEnd = [Math.ceil(arcEnd[0]), Math.ceil(arcEnd[1])];
+
+    var radius = Math.floor(Math.sqrt(Math.pow(playerCellX - cellX, 2) + Math.pow(playerCellY - cellY, 2)));
+
+    var lethalRange = 4;
+    var effectiveRange = 10;
+
+    for (var x = playerCellX - radius; x < playerCellX + radius; x++) {
+      for (var y = playerCellY - radius; y < playerCellY + radius; y++) {
+        if (x === playerCellX && y === playerCellY) continue;
+        var distanceToCell = Math.floor(Math.sqrt(Math.pow(playerCellX - x, 2) + Math.pow(playerCellY - y, 2)));
+        if (distanceToCell > effectiveRange) {
+          continue;
+        } else if (pointInTriangle([x, y], [playerCellX, playerCellY], arcStart, arcEnd)) {
+          var intensity;
+          if (distanceToCell <= lethalRange) {
+            intensity = 150;
+          } else {
+            intensity = (effectiveRange - distanceToCell) / effectiveRange * 150;
+          }
+
+          Game._drawCell(x, y, ROT.Color.toRGB([intensity, 0, 0]));
+          this.currentlyAimed.push([x, y, intensity]);
+        }
       }
     }
   }
 
-  var diedConjugation = (zombiesDied == 1 ? '' : 's');
-  var hitConjugation = (zombiesHit == 1 ? '' : 's');
-  if (zombiesDied == 0 && zombiesHit == 0) {
-    Game.setStatus("%c{yellow}Your blast shoots harmlessly into the distance")
-  } else if (zombiesDied > 0 && zombiesHit > 0) {
-    Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation + ' and injured ' + zombiesHit + ' other' + hitConjugation);
-  } else if (zombiesDied > 0) {
-    Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation);
-  } else if (zombiesHit > 0) {
-    Game.setStatus("%c{green}That blast hurt " + zombiesHit + " zombie" + hitConjugation);
-  }
+  fire(e: MouseEvent) {
+    Game.player._ammo--;
+    var zombiesHit = 0;
+    var zombiesDied = 0;
 
-  Game.display.getContainer().removeEventListener('mousemove', aim);
-  Game.display.getContainer().removeEventListener('mouseup', fire);
-  window.removeEventListener("keydown", Game.player._eventListener);
-  Game.engine.unlock();
+    for (var i = 0; i < this.currentlyAimed.length; i++) {
+      var point = convertScreenCoordinatesToMap(this.currentlyAimed[i][0], this.currentlyAimed[i][1]);
+      var key = point[0] + ',' + point[1];
+
+      if (key in Game.zombies.locations) {
+        var zombie = Game.zombies.lookupById[Game.zombies.locations[key]];
+        var intensity = this.currentlyAimed[i][2];
+        var died = zombie.takeDamage(intensity);
+        if (died) {
+          zombiesDied++;
+        } else {
+          zombiesHit++;
+        }
+      }
+    }
+
+    var diedConjugation = (zombiesDied == 1 ? '' : 's');
+    var hitConjugation = (zombiesHit == 1 ? '' : 's');
+    if (zombiesDied == 0 && zombiesHit == 0) {
+      Game.setStatus("%c{yellow}Your blast shoots harmlessly into the distance")
+    } else if (zombiesDied > 0 && zombiesHit > 0) {
+      Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation + 
+                     ' and injured ' + zombiesHit + ' other' + hitConjugation);
+    } else if (zombiesDied > 0) {
+      Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation);
+    } else if (zombiesHit > 0) {
+      Game.setStatus("%c{green}That blast hurt " + zombiesHit + " zombie" + hitConjugation);
+    }
+
+    Game.display.getContainer().removeEventListener('mousemove', Game.player._mouseMoveEventListener);
+    Game.display.getContainer().removeEventListener('mouseup', Game.player._mouseUpEventListener);
+    window.removeEventListener("keydown", Game.player._keyboardEventListener);
+    Game.engine.unlock();
+  }
 }
 
 function rotate(center: number[], point: number[], degrees: number) {

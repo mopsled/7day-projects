@@ -1,4 +1,5 @@
-/// <reference path="rot.js-TS/rot.d.ts" />
+/// <reference path="common.d.ts" />
+/// <reference path="map.d.ts" />
 declare class ZombiesInfo {
     list: any[];
     locations: {
@@ -37,32 +38,15 @@ declare class Game {
     static invalidMapCoordinate(x: number, y: number): boolean;
     static generateNewZombies(): void;
 }
-interface GameMap {
-    width: number;
-    height: number;
-    cells: string[][];
-    floorCells: Point[];
-}
-declare class SinRandomMap implements GameMap {
-    width: number;
-    height: number;
-    cells: string[][];
-    floorCells: Point[];
-    randomMultipliers: number[];
-    constructor(width: number, height: number);
-    generateFloor(): void;
-    digCallback(x: number, y: number, wall: boolean): void;
-    generateBoxes(): void;
-}
 declare class Player {
     _x: number;
     _y: number;
     _id: number;
-    _ammo: number;
     _keyboardEventListener: EventListener;
     _mouseMoveEventListener: EventListener;
     _mouseUpEventListener: EventListener;
     _weapon: Shootable;
+    ammo: number;
     constructor(x: any, y: any, id: any);
     getSpeed(): number;
     getX(): number;
@@ -70,7 +54,6 @@ declare class Player {
     act(): void;
     handleEvent(e: KeyboardEvent): void;
     _draw(x: number, y: number, background: string): void;
-    _checkBox(): void;
 }
 declare class Zombie {
     _x: number;
@@ -103,11 +86,6 @@ declare class Shotgun {
     constructor();
     aim(e: MouseEvent): void;
     fire(e: MouseEvent): void;
-}
-declare class Point {
-    x: number;
-    y: number;
-    constructor(x: number, y: number);
 }
 declare function rotate(center: Point, point: Point, degrees: number): Point;
 declare function pointInTriangle(pt: Point, v1: Point, v2: Point, v3: Point): boolean;

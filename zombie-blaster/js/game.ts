@@ -1,4 +1,6 @@
-/// <reference path="rot.js-TS/rot.d.ts" />
+/// <reference path="common.d.ts" />
+/// <reference path="map.d.ts" />
+
 class ZombiesInfo {
   list: any[];
   locations: {[index: string]: number};
@@ -60,13 +62,13 @@ class Game {
   static _generateMap() {
     this.map = new SinRandomMap(500, 200);
 
-    this.player = createBeing(Player, this.map.floorCells);
+    this.player = createBeing(Player, this.map.openFloorCoordinates);
 
     this.zombies.list = [];
     this.zombies.locations = {};
     this.zombies.lookupById = {};
     for (var i = 0; i < 1000; i++) {
-      var zombie = createBeing(Zombie, this.map.floorCells);
+      var zombie = createBeing(Zombie, this.map.openFloorCoordinates);
       this.zombies.list.push(zombie);
       this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
       this.zombies.lookupById[zombie._id] = zombie;
@@ -106,9 +108,9 @@ class Game {
       zombie._draw(screenX, screenY, background);
     } else {
       if (background) {
-        this.display.draw(screenX, screenY, this.map.cells[mapX][mapY], '#aaa', background);
+        this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile, '#aaa', background);
       } else {
-        this.display.draw(screenX, screenY, this.map.cells[mapX][mapY]);
+        this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile);
       }
     }
   }
@@ -130,7 +132,7 @@ class Game {
     }
     this.display.drawText(1, 2, this.status, sizeX - 3);
 
-    this.display.drawText(1, 19, 'Ammo: ' + ('     ' + this.player._ammo).slice(-5), sizeX - 3);
+    this.display.drawText(1, 19, 'Ammo: ' + ('     ' + this.player.ammo).slice(-5), sizeX - 3);
     this.display.drawText(1, 20, 'Turns: ' + ('    ' + this.stats.turns).slice(-4), sizeX - 3);
     this.display.drawText(1, 21, 'Zombies Killed: ' + this.stats.zombiesKilled, sizeX - 3);
   }
@@ -157,7 +159,7 @@ class Game {
   static generateNewZombies() {
     var newZombieList = [];
     for (var i = 0; i < this.zombieRate; i++) {
-      var zombie = createBeing(Zombie, this.map.floorCells);
+      var zombie = createBeing(Zombie, this.map.openFloorCoordinates);
       newZombieList.push(zombie);
       this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
       this.zombies.lookupById[zombie._id] = zombie;
@@ -168,78 +170,21 @@ class Game {
   }
 }
 
-interface GameMap {
-  width: number;
-  height: number;
-  cells: string[][];
-  floorCells: Point[];
-}
-
-class SinRandomMap implements GameMap {
-  cells: string[][];
-  floorCells: Point[];
-  randomMultipliers: number[];
-
-  constructor(public width: number, public height: number) {
-    this.cells = [];
-    this.floorCells = [];
-    this.randomMultipliers = [Math.random()* 0.6 + 0.4, Math.random()* 0.6 + 0.4, Math.random()* 0.2 + 0.8];
-
-    this.generateFloor();
-    this.generateBoxes();
-  }
-
-  generateFloor() {
-    for (var i = 0; i < this.width; i++) {
-      var row = [];
-      for (var j = 0; j < this.height; j++) {
-        row.push(' ');
-      }
-      this.cells.push(row);
-    }
-
-    var map = new ROT.Map.Arena(this.width, this.height);
-    map.create((x: number, y: number, wall: boolean) => {this.digCallback(x, y, wall)});
-  }
-
-  digCallback(x: number, y: number, wall: boolean) {
-    if (wall) { return; }
-
-    if (Math.sin(x*this.randomMultipliers[0])
-        * Math.sin(y*this.randomMultipliers[1])
-        * Math.sin(x*y*this.randomMultipliers[2])
-        > 0.4) {
-      this.cells[x][y] = ' ';
-    } else {
-      this.cells[x][y] = '.';
-      this.floorCells.push(new Point(x, y));
-    }
-  }
-
-  generateBoxes() {
-    for (var i = 0; i < 500; i++) {
-      var index = Math.floor(ROT.RNG.getUniform() * this.floorCells.length);
-      var point = this.floorCells.splice(index, 1)[0];
-      this.cells[point.x][point.y] = "*";
-    }
-  }
-}
-
 class Player {
   _x: number;
   _y: number;
   _id: number;
-  _ammo: number;
   _keyboardEventListener: EventListener;
   _mouseMoveEventListener: EventListener;
   _mouseUpEventListener: EventListener;
   _weapon: Shootable;
+  ammo: number;
 
   constructor(x, y, id) {
     this._x = x;
     this._y = y;
     this._id = id;
-    this._ammo = 12;
+    this.ammo = 12;
     this._weapon = new Shotgun();
   }
   
@@ -263,7 +208,7 @@ class Player {
     this._mouseMoveEventListener = (event: MouseEvent) => {Game.player._weapon.aim(event)};
     this._mouseUpEventListener = (event: MouseEvent) => {Game.player._weapon.fire(event)};
     window.addEventListener("keydown", this._keyboardEventListener);
-    if (this._ammo > 0) {
+    if (this.ammo > 0) {
       Game.display.getContainer().addEventListener('mousemove', this._mouseMoveEventListener);
       Game.display.getContainer().addEventListener('mouseup', this._mouseUpEventListener);
     }
@@ -272,7 +217,8 @@ class Player {
   handleEvent(e: KeyboardEvent) {
     var code = e.keyCode;
     if (code == 13 || code == 32) {
-      this._checkBox();
+      var cell = Game.map.cells[this._x][this._y];
+      (() => cell.activate(Game.player, Game, Game.map))();
       return;
     }
 
@@ -293,7 +239,7 @@ class Player {
     var dir = ROT.DIRS[8][keyMap[code]];
     var newX = this._x + dir[0];
     var newY = this._y + dir[1];
-    if (Game.map.cells[newX][newY] == ' ') { return; }
+    if (Game.map.cells[newX][newY].movement === Movement.Blocked) { return; }
 
     this._x = newX;
     this._y = newY;
@@ -306,16 +252,6 @@ class Player {
 
   _draw(x: number, y: number, background: string) {
     Game.display.draw(x, y, "@", "#ff0", background);
-  }
-    
-  _checkBox() {
-    var key = this._x + ',' + this._y;
-    if (Game.map.cells[this._x][this._y] === '*') {
-      var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 6;
-      Game.player._ammo += ammoAmount;
-      Game.setStatus('%c{green}You found ' + ammoAmount + ' shells');
-      Game.map.cells[this._x][this._y] = '.';
-    }
   }
 }
   
@@ -384,7 +320,8 @@ class Zombie {
     }
   
     var passableCallback = function(x: number, y: number) {
-      var mapPassable = Game.map.cells[x][y] === '.';
+      if (x <= 0 || y <= 0 || x >= Game.map.width || y >= Game.map.height) return false;
+      var mapPassable = (Game.map.cells[x][y].movement === Movement.Unhindered);  
       return mapPassable && !this._anotherZombieAtCoordinates(x, y);
     }
 
@@ -536,7 +473,7 @@ class Shotgun {
   }
 
   fire(e: MouseEvent) {
-    Game.player._ammo--;
+    Game.player.ammo--;
     var zombiesHit = 0;
     var zombiesDied = 0;
 
@@ -574,10 +511,6 @@ class Shotgun {
     window.removeEventListener("keydown", Game.player._keyboardEventListener);
     Game.engine.unlock();
   }
-}
-
-class Point {
-  constructor(public x: number, public y: number) { }
 }
 
 function rotate(center: Point, point: Point, degrees: number) {

@@ -1,4 +1,5 @@
-/// <reference path="rot.js-TS/rot.d.ts" />
+/// <reference path="common.d.ts" />
+/// <reference path="map.d.ts" />
 var ZombiesInfo = (function () {
     function ZombiesInfo() {
         this.list = [];
@@ -37,12 +38,12 @@ var Game = (function () {
     };
     Game._generateMap = function () {
         this.map = new SinRandomMap(500, 200);
-        this.player = createBeing(Player, this.map.floorCells);
+        this.player = createBeing(Player, this.map.openFloorCoordinates);
         this.zombies.list = [];
         this.zombies.locations = {};
         this.zombies.lookupById = {};
         for (var i = 0; i < 1000; i++) {
-            var zombie = createBeing(Zombie, this.map.floorCells);
+            var zombie = createBeing(Zombie, this.map.openFloorCoordinates);
             this.zombies.list.push(zombie);
             this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
             this.zombies.lookupById[zombie._id] = zombie;
@@ -77,10 +78,10 @@ var Game = (function () {
         }
         else {
             if (background) {
-                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY], '#aaa', background);
+                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile, '#aaa', background);
             }
             else {
-                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY]);
+                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile);
             }
         }
     };
@@ -97,7 +98,7 @@ var Game = (function () {
             }
         }
         this.display.drawText(1, 2, this.status, sizeX - 3);
-        this.display.drawText(1, 19, 'Ammo: ' + ('     ' + this.player._ammo).slice(-5), sizeX - 3);
+        this.display.drawText(1, 19, 'Ammo: ' + ('     ' + this.player.ammo).slice(-5), sizeX - 3);
         this.display.drawText(1, 20, 'Turns: ' + ('    ' + this.stats.turns).slice(-4), sizeX - 3);
         this.display.drawText(1, 21, 'Zombies Killed: ' + this.stats.zombiesKilled, sizeX - 3);
     };
@@ -118,7 +119,7 @@ var Game = (function () {
     Game.generateNewZombies = function () {
         var newZombieList = [];
         for (var i = 0; i < this.zombieRate; i++) {
-            var zombie = createBeing(Zombie, this.map.floorCells);
+            var zombie = createBeing(Zombie, this.map.openFloorCoordinates);
             newZombieList.push(zombie);
             this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
             this.zombies.lookupById[zombie._id] = zombie;
@@ -131,57 +132,12 @@ var Game = (function () {
     Game.stats = new GameStats();
     return Game;
 })();
-var SinRandomMap = (function () {
-    function SinRandomMap(width, height) {
-        this.width = width;
-        this.height = height;
-        this.cells = [];
-        this.floorCells = [];
-        this.randomMultipliers = [Math.random() * 0.6 + 0.4, Math.random() * 0.6 + 0.4, Math.random() * 0.2 + 0.8];
-        this.generateFloor();
-        this.generateBoxes();
-    }
-    SinRandomMap.prototype.generateFloor = function () {
-        var _this = this;
-        for (var i = 0; i < this.width; i++) {
-            var row = [];
-            for (var j = 0; j < this.height; j++) {
-                row.push(' ');
-            }
-            this.cells.push(row);
-        }
-        var map = new ROT.Map.Arena(this.width, this.height);
-        map.create(function (x, y, wall) {
-            _this.digCallback(x, y, wall);
-        });
-    };
-    SinRandomMap.prototype.digCallback = function (x, y, wall) {
-        if (wall) {
-            return;
-        }
-        if (Math.sin(x * this.randomMultipliers[0]) * Math.sin(y * this.randomMultipliers[1]) * Math.sin(x * y * this.randomMultipliers[2]) > 0.4) {
-            this.cells[x][y] = ' ';
-        }
-        else {
-            this.cells[x][y] = '.';
-            this.floorCells.push(new Point(x, y));
-        }
-    };
-    SinRandomMap.prototype.generateBoxes = function () {
-        for (var i = 0; i < 500; i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * this.floorCells.length);
-            var point = this.floorCells.splice(index, 1)[0];
-            this.cells[point.x][point.y] = "*";
-        }
-    };
-    return SinRandomMap;
-})();
 var Player = (function () {
     function Player(x, y, id) {
         this._x = x;
         this._y = y;
         this._id = id;
-        this._ammo = 12;
+        this.ammo = 12;
         this._weapon = new Shotgun();
     }
     Player.prototype.getSpeed = function () {
@@ -208,7 +164,7 @@ var Player = (function () {
             Game.player._weapon.fire(event);
         };
         window.addEventListener("keydown", this._keyboardEventListener);
-        if (this._ammo > 0) {
+        if (this.ammo > 0) {
             Game.display.getContainer().addEventListener('mousemove', this._mouseMoveEventListener);
             Game.display.getContainer().addEventListener('mouseup', this._mouseUpEventListener);
         }
@@ -216,7 +172,8 @@ var Player = (function () {
     Player.prototype.handleEvent = function (e) {
         var code = e.keyCode;
         if (code == 13 || code == 32) {
-            this._checkBox();
+            var cell = Game.map.cells[this._x][this._y];
+            (function () { return cell.activate(Game.player, Game, Game.map); })();
             return;
         }
         var keyMap = {};
@@ -236,7 +193,7 @@ var Player = (function () {
         var dir = ROT.DIRS[8][keyMap[code]];
         var newX = this._x + dir[0];
         var newY = this._y + dir[1];
-        if (Game.map.cells[newX][newY] == ' ') {
+        if (Game.map.cells[newX][newY].movement === 1 /* Blocked */) {
             return;
         }
         this._x = newX;
@@ -249,15 +206,6 @@ var Player = (function () {
     };
     Player.prototype._draw = function (x, y, background) {
         Game.display.draw(x, y, "@", "#ff0", background);
-    };
-    Player.prototype._checkBox = function () {
-        var key = this._x + ',' + this._y;
-        if (Game.map.cells[this._x][this._y] === '*') {
-            var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 6;
-            Game.player._ammo += ammoAmount;
-            Game.setStatus('%c{green}You found ' + ammoAmount + ' shells');
-            Game.map.cells[this._x][this._y] = '.';
-        }
     };
     return Player;
 })();
@@ -317,7 +265,9 @@ var Zombie = (function () {
             return;
         }
         var passableCallback = function (x, y) {
-            var mapPassable = Game.map.cells[x][y] === '.';
+            if (x <= 0 || y <= 0 || x >= Game.map.width || y >= Game.map.height)
+                return false;
+            var mapPassable = (Game.map.cells[x][y].movement === 0 /* Unhindered */);
             return mapPassable && !this._anotherZombieAtCoordinates(x, y);
         };
         var astar = new ROT.Path.AStar(playerX, playerY, passableCallback.bind(this), { topology: 4 });
@@ -441,7 +391,7 @@ var Shotgun = (function () {
         }
     };
     Shotgun.prototype.fire = function (e) {
-        Game.player._ammo--;
+        Game.player.ammo--;
         var zombiesHit = 0;
         var zombiesDied = 0;
         for (var i = 0; i < this.currentlyAimed.length; i++) {
@@ -479,13 +429,6 @@ var Shotgun = (function () {
         Game.engine.unlock();
     };
     return Shotgun;
-})();
-var Point = (function () {
-    function Point(x, y) {
-        this.x = x;
-        this.y = y;
-    }
-    return Point;
 })();
 function rotate(center, point, degrees) {
     var rad = degrees * Math.PI / 180;

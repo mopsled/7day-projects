@@ -36,7 +36,7 @@ var Game = (function () {
         this.engine.start();
     };
     Game._generateMap = function () {
-        this.map = new CellularMap(500, 200);
+        this.map = new SinRandomMap(500, 200);
         this.player = createBeing(Player, this.map.floorCells);
         this.zombies.list = [];
         this.zombies.locations = {};
@@ -131,16 +131,18 @@ var Game = (function () {
     Game.stats = new GameStats();
     return Game;
 })();
-var CellularMap = (function () {
-    function CellularMap(width, height) {
+var SinRandomMap = (function () {
+    function SinRandomMap(width, height) {
         this.width = width;
         this.height = height;
         this.cells = [];
         this.floorCells = [];
+        this.randomMultipliers = [Math.random() * 0.6 + 0.4, Math.random() * 0.6 + 0.4, Math.random() * 0.2 + 0.8];
         this.generateFloor();
         this.generateBoxes();
     }
-    CellularMap.prototype.generateFloor = function () {
+    SinRandomMap.prototype.generateFloor = function () {
+        var _this = this;
         for (var i = 0; i < this.width; i++) {
             var row = [];
             for (var j = 0; j < this.height; j++) {
@@ -148,30 +150,31 @@ var CellularMap = (function () {
             }
             this.cells.push(row);
         }
-        var digCallback = function (x, y, wall) {
-            if (wall) {
-                return;
-            }
+        var map = new ROT.Map.Arena(this.width, this.height);
+        map.create(function (x, y, wall) {
+            _this.digCallback(x, y, wall);
+        });
+    };
+    SinRandomMap.prototype.digCallback = function (x, y, wall) {
+        if (wall) {
+            return;
+        }
+        if (Math.sin(x * this.randomMultipliers[0]) * Math.sin(y * this.randomMultipliers[1]) * Math.sin(x * y * this.randomMultipliers[2]) > 0.4) {
+            this.cells[x][y] = ' ';
+        }
+        else {
             this.cells[x][y] = '.';
             this.floorCells.push(new Point(x, y));
-        };
-        var map = new ROT.Map.Cellular(this.width, this.height, {
-            born: [4, 5, 6, 7, 8],
-            survive: [2, 3, 4, 5]
-        });
-        map.randomize(0.9);
-        for (var i = 49; i >= 0; i--) {
-            map.create(i ? null : digCallback.bind(this));
         }
     };
-    CellularMap.prototype.generateBoxes = function () {
+    SinRandomMap.prototype.generateBoxes = function () {
         for (var i = 0; i < 500; i++) {
             var index = Math.floor(ROT.RNG.getUniform() * this.floorCells.length);
             var point = this.floorCells.splice(index, 1)[0];
             this.cells[point.x][point.y] = "*";
         }
     };
-    return CellularMap;
+    return SinRandomMap;
 })();
 var Player = (function () {
     function Player(x, y, id) {

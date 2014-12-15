@@ -58,7 +58,7 @@ class Game {
   }
 
   static _generateMap() {
-    this.map = new CellularMap(500, 200);
+    this.map = new SinRandomMap(500, 200);
 
     this.player = createBeing(Player, this.map.floorCells);
 
@@ -175,13 +175,15 @@ interface GameMap {
   floorCells: Point[];
 }
 
-class CellularMap implements GameMap {
+class SinRandomMap implements GameMap {
   cells: string[][];
   floorCells: Point[];
+  randomMultipliers: number[];
 
   constructor(public width: number, public height: number) {
     this.cells = [];
     this.floorCells = [];
+    this.randomMultipliers = [Math.random()* 0.6 + 0.4, Math.random()* 0.6 + 0.4, Math.random()* 0.2 + 0.8];
 
     this.generateFloor();
     this.generateBoxes();
@@ -196,20 +198,21 @@ class CellularMap implements GameMap {
       this.cells.push(row);
     }
 
-    var digCallback = function(x: number, y: number, wall: boolean) {
-      if (wall) { return; }
+    var map = new ROT.Map.Arena(this.width, this.height);
+    map.create((x: number, y: number, wall: boolean) => {this.digCallback(x, y, wall)});
+  }
 
+  digCallback(x: number, y: number, wall: boolean) {
+    if (wall) { return; }
+
+    if (Math.sin(x*this.randomMultipliers[0])
+        * Math.sin(y*this.randomMultipliers[1])
+        * Math.sin(x*y*this.randomMultipliers[2])
+        > 0.4) {
+      this.cells[x][y] = ' ';
+    } else {
       this.cells[x][y] = '.';
       this.floorCells.push(new Point(x, y));
-    }
-
-    var map = new ROT.Map.Cellular(this.width, this.height, {
-        born: [4, 5, 6, 7, 8],
-        survive: [2, 3, 4, 5]
-    });
-    map.randomize(0.9);
-    for (var i=49; i>=0; i--) {
-        map.create(i ? null : digCallback.bind(this));
     }
   }
 

@@ -43,13 +43,15 @@ interface GameMap {
     cells: string[][];
     floorCells: Point[];
 }
-declare class CellularMap implements GameMap {
+declare class SinRandomMap implements GameMap {
     width: number;
     height: number;
     cells: string[][];
     floorCells: Point[];
+    randomMultipliers: number[];
     constructor(width: number, height: number);
     generateFloor(): void;
+    digCallback(x: number, y: number, wall: boolean): void;
     generateBoxes(): void;
 }
 declare class Player {

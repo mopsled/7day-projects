@@ -21,8 +21,6 @@ var Game = (function () {
         this.zombieRate = 1;
         this.statusChunkSize = 30;
         this.mapChunkSize = 80;
-        this.map = [];
-        this.floorCells = [];
         this.status = '';
         this.display = new ROT.Display({ spacing: 1.1, width: this.statusChunkSize + this.mapChunkSize, height: 24 });
         document.body.appendChild(this.display.getContainer());
@@ -38,52 +36,16 @@ var Game = (function () {
         this.engine.start();
     };
     Game._generateMap = function () {
-        this.mapWidth = 500;
-        this.mapHeight = 200;
-        for (var i = 0; i < this.mapWidth; i++) {
-            var row = [];
-            for (var j = 0; j < this.mapHeight; j++) {
-                row.push(' ');
-            }
-            this.map.push(row);
-        }
-        // var digger = new ROT.Map.Digger(this.mapWidth, this.mapHeight);
-        // digger.create(digCallback.bind(this));
-        var digCallback = function (x, y, wall) {
-            if (wall) {
-                return;
-            }
-            this.map[x][y] = '.';
-            this.floorCells.push(x + "," + y);
-        };
-        var map = new ROT.Map.Cellular(this.mapWidth, this.mapHeight, {
-            born: [4, 5, 6, 7, 8],
-            survive: [2, 3, 4, 5]
-        });
-        map.randomize(0.9);
-        for (var i = 49; i >= 0; i--) {
-            map.create(i ? null : digCallback.bind(this));
-        }
-        this._generateBoxes(this.floorCells);
-        this.player = createBeing(Player, this.floorCells);
+        this.map = new CellularMap(500, 200);
+        this.player = createBeing(Player, this.map.floorCells);
         this.zombies.list = [];
         this.zombies.locations = {};
         this.zombies.lookupById = {};
         for (var i = 0; i < 1000; i++) {
-            var zombie = createBeing(Zombie, this.floorCells);
+            var zombie = createBeing(Zombie, this.map.floorCells);
             this.zombies.list.push(zombie);
             this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
             this.zombies.lookupById[zombie._id] = zombie;
-        }
-    };
-    Game._generateBoxes = function (freeCells) {
-        for (var i = 0; i < 500; i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-            var key = freeCells.splice(index, 1)[0];
-            var parts = key.split(",");
-            var x = parseInt(parts[0]);
-            var y = parseInt(parts[1]);
-            this.map[x][y] = "*";
         }
     };
     Game._drawScreen = function () {
@@ -115,10 +77,10 @@ var Game = (function () {
         }
         else {
             if (background) {
-                this.display.draw(screenX, screenY, this.map[mapX][mapY], '#aaa', background);
+                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY], '#aaa', background);
             }
             else {
-                this.display.draw(screenX, screenY, this.map[mapX][mapY]);
+                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY]);
             }
         }
     };
@@ -149,14 +111,14 @@ var Game = (function () {
         return x < 0 || x >= screenWidth || y < 0 || y >= screenWidth;
     };
     Game.invalidMapCoordinate = function (x, y) {
-        var mapWidth = this.map.length;
-        var mapHeight = this.map[0].length;
+        var mapWidth = this.map.width;
+        var mapHeight = this.map.height;
         return x < 0 || x >= mapWidth || y < 0 || y >= mapHeight;
     };
     Game.generateNewZombies = function () {
         var newZombieList = [];
         for (var i = 0; i < this.zombieRate; i++) {
-            var zombie = createBeing(Zombie, this.floorCells);
+            var zombie = createBeing(Zombie, this.map.floorCells);
             newZombieList.push(zombie);
             this.zombies.locations[zombie._x + ',' + zombie._y] = zombie._id;
             this.zombies.lookupById[zombie._id] = zombie;
@@ -168,6 +130,48 @@ var Game = (function () {
     Game.zombies = new ZombiesInfo();
     Game.stats = new GameStats();
     return Game;
+})();
+var CellularMap = (function () {
+    function CellularMap(width, height) {
+        this.width = width;
+        this.height = height;
+        this.cells = [];
+        this.floorCells = [];
+        this.generateFloor();
+        this.generateBoxes();
+    }
+    CellularMap.prototype.generateFloor = function () {
+        for (var i = 0; i < this.width; i++) {
+            var row = [];
+            for (var j = 0; j < this.height; j++) {
+                row.push(' ');
+            }
+            this.cells.push(row);
+        }
+        var digCallback = function (x, y, wall) {
+            if (wall) {
+                return;
+            }
+            this.cells[x][y] = '.';
+            this.floorCells.push(new Point(x, y));
+        };
+        var map = new ROT.Map.Cellular(this.width, this.height, {
+            born: [4, 5, 6, 7, 8],
+            survive: [2, 3, 4, 5]
+        });
+        map.randomize(0.9);
+        for (var i = 49; i >= 0; i--) {
+            map.create(i ? null : digCallback.bind(this));
+        }
+    };
+    CellularMap.prototype.generateBoxes = function () {
+        for (var i = 0; i < 500; i++) {
+            var index = Math.floor(ROT.RNG.getUniform() * this.floorCells.length);
+            var point = this.floorCells.splice(index, 1)[0];
+            this.cells[point.x][point.y] = "*";
+        }
+    };
+    return CellularMap;
 })();
 var Player = (function () {
     function Player(x, y, id) {
@@ -229,7 +233,7 @@ var Player = (function () {
         var dir = ROT.DIRS[8][keyMap[code]];
         var newX = this._x + dir[0];
         var newY = this._y + dir[1];
-        if (Game.map[newX][newY] == ' ') {
+        if (Game.map.cells[newX][newY] == ' ') {
             return;
         }
         this._x = newX;
@@ -245,11 +249,11 @@ var Player = (function () {
     };
     Player.prototype._checkBox = function () {
         var key = this._x + ',' + this._y;
-        if (Game.map[this._x][this._y] === '*') {
+        if (Game.map.cells[this._x][this._y] === '*') {
             var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 6;
             Game.player._ammo += ammoAmount;
             Game.setStatus('%c{green}You found ' + ammoAmount + ' shells');
-            Game.map[this._x][this._y] = '.';
+            Game.map.cells[this._x][this._y] = '.';
         }
     };
     return Player;
@@ -310,7 +314,7 @@ var Zombie = (function () {
             return;
         }
         var passableCallback = function (x, y) {
-            var mapPassable = Game.map[x][y] === '.';
+            var mapPassable = Game.map.cells[x][y] === '.';
             return mapPassable && !this._anotherZombieAtCoordinates(x, y);
         };
         var astar = new ROT.Path.AStar(playerX, playerY, passableCallback.bind(this), { topology: 4 });
@@ -379,17 +383,14 @@ function convertScreenCoordinatesToMap(x, y) {
 }
 var createBeing = function (what, freeCells) {
     var index = Math.floor(ROT.RNG.getUniform() * freeCells.length);
-    var key = freeCells.splice(index, 1)[0];
-    var parts = key.split(",");
-    var x = parseInt(parts[0]);
-    var y = parseInt(parts[1]);
+    var point = freeCells.splice(index, 1)[0];
     if (typeof createBeing.idCounter == 'undefined') {
         createBeing.idCounter = 0;
     }
     else {
         createBeing.idCounter++;
     }
-    return new what(x, y, createBeing.idCounter);
+    return new what(point.x, point.y, createBeing.idCounter);
 };
 var Shotgun = (function () {
     function Shotgun() {

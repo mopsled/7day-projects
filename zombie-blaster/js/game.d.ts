@@ -16,23 +16,19 @@ declare class GameStats {
 }
 declare class Game {
     static display: ROT.Display;
-    static map: string[][];
+    static map: GameMap;
     static engine: ROT.Engine;
     static scheduler: ROT.Scheduler;
     static zombieRate: number;
     static statusChunkSize: number;
     static mapChunkSize: number;
     static status: string;
-    static floorCells: string[];
-    static mapWidth: number;
-    static mapHeight: number;
     static player: any;
     static pedro: any;
     static zombies: ZombiesInfo;
     static stats: GameStats;
     static init(): void;
     static _generateMap(): void;
-    static _generateBoxes(freeCells: string[]): void;
     static _drawScreen(): void;
     static _drawCell(screenX: number, screenY: number, background?: string): void;
     static _drawStatusSection(): void;
@@ -40,6 +36,21 @@ declare class Game {
     static invalidScreenCoordinate(x: number, y: number): boolean;
     static invalidMapCoordinate(x: number, y: number): boolean;
     static generateNewZombies(): void;
+}
+interface GameMap {
+    width: number;
+    height: number;
+    cells: string[][];
+    floorCells: Point[];
+}
+declare class CellularMap implements GameMap {
+    width: number;
+    height: number;
+    cells: string[][];
+    floorCells: Point[];
+    constructor(width: number, height: number);
+    generateFloor(): void;
+    generateBoxes(): void;
 }
 declare class Player {
     _x: number;

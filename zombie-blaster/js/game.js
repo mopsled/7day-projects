@@ -270,7 +270,7 @@ var Zombie = (function () {
             var mapPassable = (Game.map.cells[x][y].movement === 0 /* Unhindered */);
             return mapPassable && !this._anotherZombieAtCoordinates(x, y);
         };
-        var astar = new ROT.Path.AStar(playerX, playerY, passableCallback.bind(this), { topology: 4 });
+        var astar = new ROT.Path.AStar(playerX, playerY, function (x, y) { return passableCallback; }, { topology: 4 });
         var path = [];
         var pathCallback = function (x, y) {
             path.push([x, y]);

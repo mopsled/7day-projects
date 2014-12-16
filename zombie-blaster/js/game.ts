@@ -325,7 +325,7 @@ class Zombie {
       return mapPassable && !this._anotherZombieAtCoordinates(x, y);
     }
 
-    var astar = new ROT.Path.AStar(playerX, playerY, passableCallback.bind(this), {topology:4});
+    var astar = new ROT.Path.AStar(playerX, playerY, (x: number, y: number) => passableCallback, {topology:4});
 
     var path = [];
     var pathCallback = function(x: number, y: number) {

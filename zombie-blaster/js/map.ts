@@ -4,7 +4,7 @@ interface GameMap {
   width: number;
   height: number;
   cells: Cell[][];
-  openFloorCoordinates: Point[];
+  openFloorLocations: Point[];
 
   setCell(location: Point, cell: Cell);
 }
@@ -55,12 +55,12 @@ class BoxCell extends Cell {
 
 class SinRandomMap implements GameMap {
   cells: Cell[][];
-  openFloorCoordinates: Point[];
+  openFloorLocations: Point[];
   randomMultipliers: number[];
 
   constructor(public width: number, public height: number) {
     this.cells = [];
-    this.openFloorCoordinates = [];
+    this.openFloorLocations = [];
     this.randomMultipliers = [Math.random()* 0.6 + 0.4, Math.random()* 0.6 + 0.4, Math.random()* 0.2 + 0.8];
 
     this.generateFloor();
@@ -81,25 +81,25 @@ class SinRandomMap implements GameMap {
   }
 
   digCallback(x: number, y: number, wall: boolean) {
-    if (wall) { return; }
-
     var point = new Point(x, y);
 
-    if (Math.sin(x*this.randomMultipliers[0])
+    if (x == 0 || y == 0 || x >= this.width || y >= this.height) {
+      this.cells[x][y] = new TreeCell(point); 
+    } else if (Math.sin(x*this.randomMultipliers[0])
       * Math.sin(y*this.randomMultipliers[1])
       * Math.sin(x*y*this.randomMultipliers[2])
       > 0.4) {
       this.cells[x][y] = new TreeCell(point);
     } else {
       this.cells[x][y] = new FloorCell(point);
-      this.openFloorCoordinates.push(point);
+      this.openFloorLocations.push(point);
     }
   }
 
   generateBoxes() {
     for (var i = 0; i < 500; i++) {
-      var index = Math.floor(ROT.RNG.getUniform() * this.openFloorCoordinates.length);
-      var point = this.openFloorCoordinates.splice(index, 1)[0];
+      var index = Math.floor(ROT.RNG.getUniform() * this.openFloorLocations.length);
+      var point = this.openFloorLocations.splice(index, 1)[0];
 
       var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 8;
       var box = new BoxCell(point, ammoAmount);

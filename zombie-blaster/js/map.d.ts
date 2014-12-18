@@ -3,7 +3,7 @@ interface GameMap {
     width: number;
     height: number;
     cells: Cell[][];
-    openFloorCoordinates: Point[];
+    openFloorLocations: Point[];
     setCell(location: Point, cell: Cell): any;
 }
 interface TileManager {
@@ -35,7 +35,7 @@ declare class SinRandomMap implements GameMap {
     width: number;
     height: number;
     cells: Cell[][];
-    openFloorCoordinates: Point[];
+    openFloorLocations: Point[];
     randomMultipliers: number[];
     constructor(width: number, height: number);
     generateFloor(): void;

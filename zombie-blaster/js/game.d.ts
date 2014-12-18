@@ -1,17 +1,7 @@
 /// <reference path="common.d.ts" />
 /// <reference path="map.d.ts" />
-declare class ZombiesInfo {
-    list: any[];
-    locations: {
-        [x: string]: number;
-    };
-    lookupById: {
-        [x: number]: any;
-    };
-    constructor();
-}
+/// <reference path="zombies.d.ts" />
 declare class GameStats {
-    zombiesKilled: number;
     turns: number;
     constructor();
 }
@@ -20,60 +10,35 @@ declare class Game {
     static map: GameMap;
     static engine: ROT.Engine;
     static scheduler: ROT.Scheduler;
-    static zombieRate: number;
     static statusChunkSize: number;
     static mapChunkSize: number;
     static status: string;
     static player: any;
-    static pedro: any;
-    static zombies: ZombiesInfo;
+    static zombieManager: ZombieManager;
     static stats: GameStats;
     static init(): void;
-    static _generateMap(): void;
-    static _drawScreen(): void;
-    static _drawCell(screenX: number, screenY: number, background?: string): void;
-    static _drawStatusSection(): void;
+    static generateMap(): void;
+    static drawScreen(): void;
+    static drawCell(screenX: number, screenY: number, background?: string): void;
+    static drawStatusSection(): void;
     static setStatus(status: string): void;
     static invalidScreenCoordinate(x: number, y: number): boolean;
     static invalidMapCoordinate(x: number, y: number): boolean;
-    static generateNewZombies(): void;
+    static convertMapCoordinatesToScreen(x: number, y: number): number[];
+    static convertScreenCoordinatesToMap(x: number, y: number): number[];
 }
-declare class Player {
-    _x: number;
-    _y: number;
-    _id: number;
-    _keyboardEventListener: EventListener;
-    _mouseMoveEventListener: EventListener;
-    _mouseUpEventListener: EventListener;
-    _weapon: Shootable;
+declare class Player extends Entity {
+    keyboardEventListener: EventListener;
+    mouseMoveEventListener: EventListener;
+    mouseUpEventListener: EventListener;
+    weapon: Shootable;
     ammo: number;
-    constructor(x: any, y: any, id: any);
+    constructor(location: Point);
     getSpeed(): number;
-    getX(): number;
-    getY(): number;
     act(): void;
     handleEvent(e: KeyboardEvent): void;
-    _draw(x: number, y: number, background: string): void;
+    draw(x: number, y: number, background: string): void;
 }
-declare class Zombie {
-    _x: number;
-    _y: number;
-    _id: number;
-    _health: number;
-    constructor(x: number, y: number, id: number);
-    getSpeed(): number;
-    act(): void;
-    _draw(x: number, y: number, background: string): void;
-    _anotherZombieAtCoordinates(x: number, y: number): boolean;
-    takeDamage(damage: number): boolean;
-}
-declare function convertMapCoordinatesToScreen(x: number, y: number): number[];
-declare function convertScreenCoordinatesToMap(x: number, y: number): number[];
-interface FunctionWithNumberProperty {
-    (what: any, freeCells: any): any;
-    idCounter: number;
-}
-declare var createBeing: any;
 interface Shootable {
     aim(e: MouseEvent): any;
     fire(e: MouseEvent): any;

@@ -6,4 +6,13 @@ var Point = (function () {
     }
     return Point;
 })();
+var Entity = (function () {
+    function Entity(location) {
+        this.location = location;
+        Entity.idCounter++;
+        this.id = Entity.idCounter;
+    }
+    Entity.idCounter = 0;
+    return Entity;
+})();
 //# sourceMappingURL=common.js.map

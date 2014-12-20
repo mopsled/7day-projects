@@ -95,10 +95,12 @@ class Zombie extends Entity {
   
   act() {
     var screenXY = this.coordinateManager.convertMapCoordinatesToScreen(this.location.x, this.location.y);
+
     if (this.coordinateManager.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
       var movX = [-1, 0, 1].random();
       var movY = [-1, 0, 1].random();
-      if (!this.anotherZombieAtCoordinates(this.location.x + movX, this.location.y + movY)) {
+
+      if (this.canMoveToLocation(new Point(this.location.x + movX, this.location.y + movY))) {
         delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
         this.location.x += movX;
         this.location.y += movY;
@@ -130,7 +132,7 @@ class Zombie extends Entity {
         newX = this.location.x;
       }
 
-      if (!this.anotherZombieAtCoordinates(newX, newY)) {
+      if (this.canMoveToLocation(new Point(newX, newY))) {
         delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
         this.location.x = newX;
         this.location.y = newY;
@@ -139,20 +141,19 @@ class Zombie extends Entity {
 
       return;
     }
-  
-    var passableCallback = function(x: number, y: number) {
-      if (x <= 0 || y <= 0 || x >= this.map.width || y >= this.map.height) return false;
-      var mapPassable = (this.map.cells[x][y].movement === Movement.Unhindered);  
-      return mapPassable && !this.anotherZombieAtCoordinates(x, y);
-    }
 
-    var astar = new ROT.Path.AStar(playerX, playerY, (x: number, y: number) => passableCallback, {topology:4});
+    var astar = new ROT.Path.AStar(playerX, playerY, (x: number, y: number) => {
+      return this.canMoveToLocation(new Point(x, y))
+    }, {topology:4});
 
     var path = [];
     var pathCallback = function(x: number, y: number) {
       path.push([x, y]);
     }
-    astar.compute(this.location.x, this.location.y, pathCallback);
+    astar.compute(this.location.x, this.location.y, (x: number, y: number) => {
+      console.log("Called pathCallback with " + x + " " + y);
+      pathCallback(x, y);
+    });
 
     path.shift();
     if (path.length == 1) {
@@ -174,10 +175,27 @@ class Zombie extends Entity {
     this.display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
   }
 
+  canMoveToLocation(location: Point) {
+    var invalidCoordinate = this.coordinateManager.invalidMapCoordinate(location.x, location.y);
+    if (!invalidCoordinate) {
+      var mapPassable = (this.map.cells[location.x][location.y].movement === Movement.Unhindered);
+      if (mapPassable) {
+        var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
+        return !anotherZombieAtLocation;
+      }
+    }
+
+    return false;
+  }
+
   anotherZombieAtCoordinates(x: number, y: number) {
     var key = x + ',' + y;
-    if (this.zombieManager.locations[key] == this.id) return false;
-    if (key in this.zombieManager.locations) return true;
+    if (this.zombieManager.locations[key] === this.id) {
+      return false;
+    }
+    if (key in this.zombieManager.locations) {
+      return true;
+    }
     return false;
   }
 

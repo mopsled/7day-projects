@@ -1,6 +1,6 @@
-/// <reference path="common.d.ts" />
-/// <reference path="map.d.ts" />
-/// <reference path="zombies.d.ts" />
+/// <reference path='common.d.ts' />
+/// <reference path='map.d.ts' />
+/// <reference path='zombies.d.ts' />
 
 class GameStats {
   turns: number;
@@ -46,8 +46,7 @@ class Game {
 
     var index = Math.floor(ROT.RNG.getUniform() * this.map.openFloorLocations.length);
     var location = this.map.openFloorLocations.splice(index, 1)[0];
-    // this.player = new Player(location);
-    this.player = new Player(new Point(3, 3));
+    this.player = new Player(location);
 
     this.zombieManager.generateZombies(
       1000 /* count */,
@@ -205,7 +204,7 @@ class Player extends Entity {
     this.keyboardEventListener = (event: KeyboardEvent) => {this.handleEvent(event)};
     this.mouseMoveEventListener = (event: MouseEvent) => {Game.player.weapon.aim(event)};
     this.mouseUpEventListener = (event: MouseEvent) => {Game.player.weapon.fire(event)};
-    window.addEventListener("keydown", this.keyboardEventListener);
+    window.addEventListener('keydown', this.keyboardEventListener);
     if (this.ammo > 0) {
       Game.display.getContainer().addEventListener('mousemove', this.mouseMoveEventListener);
       Game.display.getContainer().addEventListener('mouseup', this.mouseUpEventListener);
@@ -241,7 +240,7 @@ class Player extends Entity {
 
     this.location.x = newX;
     this.location.y = newY;
-    window.removeEventListener("keydown", this.keyboardEventListener);
+    window.removeEventListener('keydown', this.keyboardEventListener);
     Game.display.getContainer().removeEventListener('mousemove', this.mouseMoveEventListener);
     Game.display.getContainer().removeEventListener('mouseup', this.mouseUpEventListener);
     Game.stats.turns++;
@@ -249,7 +248,7 @@ class Player extends Entity {
   }
 
   draw(x: number, y: number, background: string) {
-    Game.display.draw(x, y, "@", "#ff0", background);
+    Game.display.draw(x, y, '@', '#ff0', background);
   }
 }
 
@@ -335,19 +334,19 @@ class Shotgun {
     var diedConjugation = (zombiesDied == 1 ? '' : 's');
     var hitConjugation = (zombiesHit == 1 ? '' : 's');
     if (zombiesDied == 0 && zombiesHit == 0) {
-      Game.setStatus("%c{yellow}Your blast shoots harmlessly into the distance")
+      Game.setStatus('%c{yellow}Your blast shoots harmlessly into the distance')
     } else if (zombiesDied > 0 && zombiesHit > 0) {
       Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation + 
                      ' and injured ' + zombiesHit + ' other' + hitConjugation);
     } else if (zombiesDied > 0) {
       Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation);
     } else if (zombiesHit > 0) {
-      Game.setStatus("%c{green}That blast hurt " + zombiesHit + " zombie" + hitConjugation);
+      Game.setStatus('%c{green}That blast hurt ' + zombiesHit + ' zombie' + hitConjugation);
     }
 
     Game.display.getContainer().removeEventListener('mousemove', Game.player.mouseMoveEventListener);
     Game.display.getContainer().removeEventListener('mouseup', Game.player.mouseUpEventListener);
-    window.removeEventListener("keydown", Game.player.keyboardEventListener);
+    window.removeEventListener('keydown', Game.player.keyboardEventListener);
     Game.engine.unlock();
   }
 }

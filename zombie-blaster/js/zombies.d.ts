@@ -28,6 +28,7 @@ declare class Zombie extends Entity {
     getSpeed(): number;
     act(): void;
     draw(x: number, y: number, background: string): void;
+    canMoveToLocation(location: Point): boolean;
     anotherZombieAtCoordinates(x: number, y: number): boolean;
     takeDamage(damage: number): boolean;
 }

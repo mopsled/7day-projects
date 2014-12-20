@@ -46,11 +46,12 @@ var Zombie = (function (_super) {
         return 100;
     };
     Zombie.prototype.act = function () {
+        var _this = this;
         var screenXY = this.coordinateManager.convertMapCoordinatesToScreen(this.location.x, this.location.y);
         if (this.coordinateManager.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
             var movX = [-1, 0, 1].random();
             var movY = [-1, 0, 1].random();
-            if (!this.anotherZombieAtCoordinates(this.location.x + movX, this.location.y + movY)) {
+            if (this.canMoveToLocation(new Point(this.location.x + movX, this.location.y + movY))) {
                 delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
                 this.location.x += movX;
                 this.location.y += movY;
@@ -82,7 +83,7 @@ var Zombie = (function (_super) {
                 }
                 newX = this.location.x;
             }
-            if (!this.anotherZombieAtCoordinates(newX, newY)) {
+            if (this.canMoveToLocation(new Point(newX, newY))) {
                 delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
                 this.location.x = newX;
                 this.location.y = newY;
@@ -90,18 +91,17 @@ var Zombie = (function (_super) {
             }
             return;
         }
-        var passableCallback = function (x, y) {
-            if (x <= 0 || y <= 0 || x >= this.map.width || y >= this.map.height)
-                return false;
-            var mapPassable = (this.map.cells[x][y].movement === 0 /* Unhindered */);
-            return mapPassable && !this.anotherZombieAtCoordinates(x, y);
-        };
-        var astar = new ROT.Path.AStar(playerX, playerY, function (x, y) { return passableCallback; }, { topology: 4 });
+        var astar = new ROT.Path.AStar(playerX, playerY, function (x, y) {
+            return _this.canMoveToLocation(new Point(x, y));
+        }, { topology: 4 });
         var path = [];
         var pathCallback = function (x, y) {
             path.push([x, y]);
         };
-        astar.compute(this.location.x, this.location.y, pathCallback);
+        astar.compute(this.location.x, this.location.y, function (x, y) {
+            console.log("Called pathCallback with " + x + " " + y);
+            pathCallback(x, y);
+        });
         path.shift();
         if (path.length == 1) {
             this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
@@ -121,12 +121,25 @@ var Zombie = (function (_super) {
         var color = ROT.Color.interpolate([97, 65, 38], [255, 0, 0], this.health / 100);
         this.display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
     };
+    Zombie.prototype.canMoveToLocation = function (location) {
+        var invalidCoordinate = this.coordinateManager.invalidMapCoordinate(location.x, location.y);
+        if (!invalidCoordinate) {
+            var mapPassable = (this.map.cells[location.x][location.y].movement === 0 /* Unhindered */);
+            if (mapPassable) {
+                var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
+                return !anotherZombieAtLocation;
+            }
+        }
+        return false;
+    };
     Zombie.prototype.anotherZombieAtCoordinates = function (x, y) {
         var key = x + ',' + y;
-        if (this.zombieManager.locations[key] == this.id)
+        if (this.zombieManager.locations[key] === this.id) {
             return false;
-        if (key in this.zombieManager.locations)
+        }
+        if (key in this.zombieManager.locations) {
             return true;
+        }
         return false;
     };
     Zombie.prototype.takeDamage = function (damage) {

@@ -1,6 +1,6 @@
-/// <reference path="common.d.ts" />
-/// <reference path="map.d.ts" />
-/// <reference path="zombies.d.ts" />
+/// <reference path='common.d.ts' />
+/// <reference path='map.d.ts' />
+/// <reference path='zombies.d.ts' />
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -35,8 +35,7 @@ var Game = (function () {
         this.map = new SinRandomMap(500, 200);
         var index = Math.floor(ROT.RNG.getUniform() * this.map.openFloorLocations.length);
         var location = this.map.openFloorLocations.splice(index, 1)[0];
-        // this.player = new Player(location);
-        this.player = new Player(new Point(3, 3));
+        this.player = new Player(location);
         this.zombieManager.generateZombies(1000, this.map.openFloorLocations, this, this.zombieManager, this.player, this.map, this, this, this.engine, this.display, this.scheduler);
     };
     Game.drawScreen = function () {
@@ -154,7 +153,7 @@ var Player = (function (_super) {
         this.mouseUpEventListener = function (event) {
             Game.player.weapon.fire(event);
         };
-        window.addEventListener("keydown", this.keyboardEventListener);
+        window.addEventListener('keydown', this.keyboardEventListener);
         if (this.ammo > 0) {
             Game.display.getContainer().addEventListener('mousemove', this.mouseMoveEventListener);
             Game.display.getContainer().addEventListener('mouseup', this.mouseUpEventListener);
@@ -189,14 +188,14 @@ var Player = (function (_super) {
         }
         this.location.x = newX;
         this.location.y = newY;
-        window.removeEventListener("keydown", this.keyboardEventListener);
+        window.removeEventListener('keydown', this.keyboardEventListener);
         Game.display.getContainer().removeEventListener('mousemove', this.mouseMoveEventListener);
         Game.display.getContainer().removeEventListener('mouseup', this.mouseUpEventListener);
         Game.stats.turns++;
         Game.engine.unlock();
     };
     Player.prototype.draw = function (x, y, background) {
-        Game.display.draw(x, y, "@", "#ff0", background);
+        Game.display.draw(x, y, '@', '#ff0', background);
     };
     return Player;
 })(Entity);
@@ -267,7 +266,7 @@ var Shotgun = (function () {
         var diedConjugation = (zombiesDied == 1 ? '' : 's');
         var hitConjugation = (zombiesHit == 1 ? '' : 's');
         if (zombiesDied == 0 && zombiesHit == 0) {
-            Game.setStatus("%c{yellow}Your blast shoots harmlessly into the distance");
+            Game.setStatus('%c{yellow}Your blast shoots harmlessly into the distance');
         }
         else if (zombiesDied > 0 && zombiesHit > 0) {
             Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation + ' and injured ' + zombiesHit + ' other' + hitConjugation);
@@ -276,11 +275,11 @@ var Shotgun = (function () {
             Game.setStatus('%c{green}You killed ' + zombiesDied + ' zombie' + diedConjugation);
         }
         else if (zombiesHit > 0) {
-            Game.setStatus("%c{green}That blast hurt " + zombiesHit + " zombie" + hitConjugation);
+            Game.setStatus('%c{green}That blast hurt ' + zombiesHit + ' zombie' + hitConjugation);
         }
         Game.display.getContainer().removeEventListener('mousemove', Game.player.mouseMoveEventListener);
         Game.display.getContainer().removeEventListener('mouseup', Game.player.mouseUpEventListener);
-        window.removeEventListener("keydown", Game.player.keyboardEventListener);
+        window.removeEventListener('keydown', Game.player.keyboardEventListener);
         Game.engine.unlock();
     };
     return Shotgun;

@@ -100,6 +100,9 @@ var Zombie = (function (_super) {
         astar.compute(this.location.x, this.location.y, pathCallback);
         path.shift();
         if (path.length == 1) {
+            this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
+            this.screenDrawer.drawScreen();
+            this.engine.lock();
         }
         else if (path.length > 1) {
             delete this.zombieManager.locations[this.location.x + ',' + this.location.y];

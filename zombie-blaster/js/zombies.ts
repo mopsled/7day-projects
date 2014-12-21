@@ -152,9 +152,9 @@ class Zombie extends Entity {
 
     path.shift();
     if (path.length == 1) {
-      // this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
-      // this.screenDrawer.drawScreen();
-      // this.engine.lock();
+      this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
+      this.screenDrawer.drawScreen();
+      this.engine.lock();
     } else if (path.length > 1) {
       delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
       var x = path[0][0];

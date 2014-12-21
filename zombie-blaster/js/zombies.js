@@ -98,10 +98,7 @@ var Zombie = (function (_super) {
         var pathCallback = function (x, y) {
             path.push([x, y]);
         };
-        astar.compute(this.location.x, this.location.y, function (x, y) {
-            console.log("Called pathCallback with " + x + " " + y);
-            pathCallback(x, y);
-        });
+        astar.compute(this.location.x, this.location.y, pathCallback);
         path.shift();
         if (path.length == 1) {
             this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');

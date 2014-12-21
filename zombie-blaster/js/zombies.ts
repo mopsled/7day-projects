@@ -150,10 +150,7 @@ class Zombie extends Entity {
     var pathCallback = function(x: number, y: number) {
       path.push([x, y]);
     }
-    astar.compute(this.location.x, this.location.y, (x: number, y: number) => {
-      console.log("Called pathCallback with " + x + " " + y);
-      pathCallback(x, y);
-    });
+    astar.compute(this.location.x, this.location.y, pathCallback);
 
     path.shift();
     if (path.length == 1) {

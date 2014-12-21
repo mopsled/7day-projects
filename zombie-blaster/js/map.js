@@ -12,35 +12,46 @@ var Movement;
 })(Movement || (Movement = {}));
 ;
 var Cell = (function () {
-    function Cell(location, tile, movement) {
+    function Cell(location, tile, foregroundColor, backgroundColor, movement) {
         if (tile === void 0) { tile = ' '; }
+        if (foregroundColor === void 0) { foregroundColor = '#999'; }
+        if (backgroundColor === void 0) { backgroundColor = '#000'; }
         if (movement === void 0) { movement = 0 /* Unhindered */; }
-        this.location = location;
         this.tile = tile;
+        this.foregroundColor = foregroundColor;
+        this.backgroundColor = backgroundColor;
         this.movement = movement;
+        this.location = location;
     }
     Cell.prototype.activate = function (inventoryManager, statusManager, tileManager) {
+    };
+    Cell.createBackgroundColor = function () {
+        var backgroundGray = Math.floor(ROT.RNG.getNormal(20, 6));
+        return ROT.Color.toHex([backgroundGray, backgroundGray, backgroundGray]);
     };
     return Cell;
 })();
 var FloorCell = (function (_super) {
     __extends(FloorCell, _super);
     function FloorCell(location) {
-        _super.call(this, location, '.', 0 /* Unhindered */);
+        _super.call(this, location, '.', '#ccc', Cell.createBackgroundColor(), 0 /* Unhindered */);
+        var backgroundColor = ROT.Color.fromString(this.backgroundColor);
+        var foregroundColor = ROT.Color.interpolate(backgroundColor, [255, 255, 255], 0.2);
+        this.foregroundColor = ROT.Color.toHex(foregroundColor);
     }
     return FloorCell;
 })(Cell);
 var TreeCell = (function (_super) {
     __extends(TreeCell, _super);
     function TreeCell(location) {
-        _super.call(this, location, '#', 1 /* Blocked */);
+        _super.call(this, location, '#', '#C04000', Cell.createBackgroundColor(), 1 /* Blocked */);
     }
     return TreeCell;
 })(Cell);
 var BoxCell = (function (_super) {
     __extends(BoxCell, _super);
     function BoxCell(location, ammoAmount) {
-        _super.call(this, location, '*', 0 /* Unhindered */);
+        _super.call(this, location, '*', '#FFA505', Cell.createBackgroundColor(), 0 /* Unhindered */);
         this.ammoAmount = ammoAmount;
     }
     BoxCell.prototype.activate = function (inventoryManager, statusManager, tileManager) {

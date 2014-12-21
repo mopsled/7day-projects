@@ -17,33 +17,52 @@ enum Movement {Unhindered, Blocked};
 
 class Cell {
   tile: string;
+  foregroundColor: string;
+  backgroundColor: string;
   movement: Movement;
   location: Point;
 
-  constructor(location: Point, tile: string = ' ', movement: Movement = Movement.Unhindered) {
-    this.location = location;
+  constructor(
+    location: Point, 
+    tile: string = ' ', 
+    foregroundColor: string = '#999', 
+    backgroundColor: string = '#000', 
+    movement: Movement = Movement.Unhindered) {
+
     this.tile = tile;
+    this.foregroundColor = foregroundColor;
+    this.backgroundColor = backgroundColor;
     this.movement = movement;
+    this.location = location;
   }
 
   activate(inventoryManager: InventoryManager, statusManager: StatusManager, tileManager: TileManager) { }
+
+  static createBackgroundColor() {
+    var backgroundGray = Math.floor(ROT.RNG.getNormal(20, 6));
+    return ROT.Color.toHex([backgroundGray, backgroundGray, backgroundGray]);
+  }
 }
 
 class FloorCell extends Cell {
   constructor(location: Point) {
-    super(location, '.', Movement.Unhindered)
+    super(location, '.', '#ccc', Cell.createBackgroundColor(), Movement.Unhindered);
+
+    var backgroundColor = ROT.Color.fromString(this.backgroundColor);
+    var foregroundColor = ROT.Color.interpolate(backgroundColor, [255, 255, 255], 0.2);
+    this.foregroundColor = ROT.Color.toHex(foregroundColor);
   }
 }
 
 class TreeCell extends Cell {
   constructor(location: Point) {
-    super(location, '#', Movement.Blocked)
+    super(location, '#', '#C04000', Cell.createBackgroundColor(), Movement.Blocked)
   }
 }
 
 class BoxCell extends Cell {
   constructor(location: Point, public ammoAmount: number) {
-    super(location, '*', Movement.Unhindered);
+    super(location, '*', '#FFA505', Cell.createBackgroundColor(), Movement.Unhindered);
   }
 
   activate(inventoryManager: InventoryManager, statusManager: StatusManager, tileManager: TileManager) {

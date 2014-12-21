@@ -66,6 +66,14 @@ var Game = (function () {
             }
             return;
         }
+        if (background) {
+            var backgroundColor = ROT.Color.fromString(background);
+            var cellBackgroundColor = ROT.Color.fromString(this.map.cells[mapX][mapY].backgroundColor);
+            background = ROT.Color.toHex(ROT.Color.add(backgroundColor, cellBackgroundColor));
+        }
+        else {
+            background = this.map.cells[mapX][mapY].backgroundColor;
+        }
         if (this.player.location.x === mapX && this.player.location.y === mapY) {
             this.player.draw(screenX, screenY, background);
         }
@@ -75,12 +83,7 @@ var Game = (function () {
             zombie.draw(screenX, screenY, background);
         }
         else {
-            if (background) {
-                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile, '#aaa', background);
-            }
-            else {
-                this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile);
-            }
+            this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile, this.map.cells[mapX][mapY].foregroundColor, background);
         }
     };
     Game.drawStatusSection = function () {

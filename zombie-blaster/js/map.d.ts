@@ -15,10 +15,13 @@ declare enum Movement {
 }
 declare class Cell {
     tile: string;
+    foregroundColor: string;
+    backgroundColor: string;
     movement: Movement;
     location: Point;
-    constructor(location: Point, tile?: string, movement?: Movement);
+    constructor(location: Point, tile?: string, foregroundColor?: string, backgroundColor?: string, movement?: Movement);
     activate(inventoryManager: InventoryManager, statusManager: StatusManager, tileManager: TileManager): void;
+    static createBackgroundColor(): string;
 }
 declare class FloorCell extends Cell {
     constructor(location: Point);

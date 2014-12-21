@@ -1,11 +1,8 @@
 /// <reference path="common.d.ts" />
 
 interface GameMap {
-  width: number;
-  height: number;
-  cells: Cell[][];
-  openFloorLocations: Point[];
-
+  getEmptyLocation(): Point;
+  getCell(location: Point): Cell;
   setCell(location: Point, cell: Cell);
 }
 
@@ -73,61 +70,62 @@ class BoxCell extends Cell {
 }
 
 class SinRandomMap implements GameMap {
-  cells: Cell[][];
-  openFloorLocations: Point[];
   randomMultipliers: number[];
+  generatedCells: { [locationString: string]: Cell; };
+  emptyCells: Point[];
 
-  constructor(public width: number, public height: number) {
-    this.cells = [];
-    this.openFloorLocations = [];
+  constructor() {
+    this.generatedCells = {};
+    this.emptyCells = [];
+
     this.randomMultipliers = [Math.random()* 0.6 + 0.4, Math.random()* 0.6 + 0.4, Math.random()* 0.2 + 0.8];
 
-    this.generateFloor();
-    this.generateBoxes();
-  }
-
-  generateFloor() {
-    for (var i = 0; i < this.width; i++) {
-      var row = [];
-      for (var j = 0; j < this.height; j++) {
-        row.push(new FloorCell(new Point(i, j)));
+    for (var i = 0; i < 200; i++) {
+      for (var j = 0; j < 200; j++) {
+        this.getCell(new Point(i, j));
       }
-      this.cells.push(row);
-    }
-
-    var map = new ROT.Map.Arena(this.width, this.height);
-    map.create((x: number, y: number, wall: boolean) => {this.digCallback(x, y, wall)});
-  }
-
-  digCallback(x: number, y: number, wall: boolean) {
-    var point = new Point(x, y);
-
-    if (x == 0 || y == 0 || x >= this.width || y >= this.height) {
-      this.cells[x][y] = new TreeCell(point); 
-    } else if (Math.sin(x*this.randomMultipliers[0])
-      * Math.sin(y*this.randomMultipliers[1])
-      * Math.sin(x*y*this.randomMultipliers[2])
-      > 0.4) {
-      this.cells[x][y] = new TreeCell(point);
-    } else {
-      this.cells[x][y] = new FloorCell(point);
-      this.openFloorLocations.push(point);
     }
   }
 
-  generateBoxes() {
-    for (var i = 0; i < 500; i++) {
-      var index = Math.floor(ROT.RNG.getUniform() * this.openFloorLocations.length);
-      var point = this.openFloorLocations.splice(index, 1)[0];
+  getEmptyLocation() {
+    return this.emptyCells.random();
+  }
 
-      var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 8;
-      var box = new BoxCell(point, ammoAmount);
+  getCell(location: Point) {
+    var locationKey = location.x + ',' + location.y;
 
-      this.cells[point.x][point.y] = box;
+    var cell = this.generatedCells[locationKey];
+    if (cell) {
+      return cell;
     }
+
+    cell = this.generateNewCell(location);
+    this.generatedCells[locationKey] = cell;
+    return cell;
   }
 
   setCell(location: Point, cell: Cell) {
-    this.cells[location.x][location.y] = cell;
+    var locationKey = location.x + ',' + location.y;
+    this.generatedCells[locationKey] = cell;
+  }
+
+  generateNewCell(location: Point) {
+    if (Math.sin(location.x*this.randomMultipliers[0])
+      * Math.sin(location.y*this.randomMultipliers[1])
+      * Math.sin(location.x*location.y*this.randomMultipliers[2])
+      > 0.4) {
+
+      return new TreeCell(location);
+    } else if (ROT.RNG.getUniform() <= 0.005) {
+      return this.generateBoxCell(location);
+    } else {
+      this.emptyCells.push(location);
+      return new FloorCell(location);
+    }
+  }
+
+  generateBoxCell(location: Point) {
+    var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 8;
+    return new BoxCell(location, ammoAmount);
   }
 }

@@ -23,7 +23,6 @@ declare class Game {
     static drawStatusSection(): void;
     static setStatus(status: string): void;
     static invalidScreenCoordinate(x: number, y: number): boolean;
-    static invalidMapCoordinate(x: number, y: number): boolean;
     static convertMapCoordinatesToScreen(x: number, y: number): number[];
     static convertScreenCoordinatesToMap(x: number, y: number): number[];
 }

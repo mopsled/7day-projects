@@ -14,7 +14,6 @@ interface CoordinateManager {
     convertMapCoordinatesToScreen(x: number, y: number): any;
     convertScreenCoordinatesToMap(x: number, y: number): any;
     invalidScreenCoordinate(x: number, y: number): any;
-    invalidMapCoordinate(x: number, y: number): any;
 }
 interface ScreenDrawer {
     drawScreen(): any;

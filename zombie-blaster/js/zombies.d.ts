@@ -11,7 +11,7 @@ declare class ZombieManager {
     zombieRate: number;
     zombiesKilled: number;
     constructor();
-    generateZombies(count: number, openFloorLocations: Point[], coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, gameMap: GameMap, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler): void;
+    generateZombies(count: number, coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, gameMap: GameMap, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler): void;
 }
 declare class Zombie extends Entity {
     health: number;

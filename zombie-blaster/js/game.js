@@ -29,14 +29,13 @@ var Game = (function () {
         this.scheduler.add(this.player, true);
         this.engine.start();
         this.drawScreen();
-        this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nSpace to loot');
+        this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nPick up * for ammo');
     };
     Game.generateMap = function () {
-        this.map = new SinRandomMap(500, 200);
-        var index = Math.floor(ROT.RNG.getUniform() * this.map.openFloorLocations.length);
-        var location = this.map.openFloorLocations.splice(index, 1)[0];
+        this.map = new SinRandomMap();
+        var location = this.map.getEmptyLocation();
         this.player = new Player(location);
-        this.zombieManager.generateZombies(1000, this.map.openFloorLocations, this, this.zombieManager, this.player, this.map, this, this, this.engine, this.display, this.scheduler);
+        this.zombieManager.generateZombies(400, this, this.zombieManager, this.player, this.map, this, this, this.engine, this.display, this.scheduler);
     };
     Game.drawScreen = function () {
         for (var x = this.statusChunkSize; x < this.display.getOptions().width; x++) {
@@ -54,25 +53,17 @@ var Game = (function () {
         var mapX = screenX + mapOffsetX;
         var mapY = screenY + mapOffsetY;
         var key = mapX + ',' + mapY;
+        var location = new Point(mapX, mapY);
         if (this.invalidScreenCoordinate(screenX, screenY)) {
-            return;
-        }
-        else if (this.invalidMapCoordinate(mapX, mapY)) {
-            if (background) {
-                this.display.draw(screenX, screenY, ' ', '#aaa', background);
-            }
-            else {
-                this.display.draw(screenX, screenY, ' ');
-            }
             return;
         }
         if (background) {
             var backgroundColor = ROT.Color.fromString(background);
-            var cellBackgroundColor = ROT.Color.fromString(this.map.cells[mapX][mapY].backgroundColor);
+            var cellBackgroundColor = ROT.Color.fromString(this.map.getCell(location).backgroundColor);
             background = ROT.Color.toHex(ROT.Color.add(backgroundColor, cellBackgroundColor));
         }
         else {
-            background = this.map.cells[mapX][mapY].backgroundColor;
+            background = this.map.getCell(location).backgroundColor;
         }
         if (this.player.location.x === mapX && this.player.location.y === mapY) {
             this.player.draw(screenX, screenY, background);
@@ -83,7 +74,7 @@ var Game = (function () {
             zombie.draw(screenX, screenY, background);
         }
         else {
-            this.display.draw(screenX, screenY, this.map.cells[mapX][mapY].tile, this.map.cells[mapX][mapY].foregroundColor, background);
+            this.display.draw(screenX, screenY, this.map.getCell(location).tile, this.map.getCell(location).foregroundColor, background);
         }
     };
     Game.drawStatusSection = function () {
@@ -111,9 +102,6 @@ var Game = (function () {
         var screenWidth = this.display.getOptions().width;
         var screenHeight = this.display.getOptions().height;
         return x < 0 || x >= screenWidth || y < 0 || y >= screenWidth;
-    };
-    Game.invalidMapCoordinate = function (x, y) {
-        return x < 0 || x >= this.map.width || y < 0 || y >= this.map.height;
     };
     Game.convertMapCoordinatesToScreen = function (x, y) {
         var screenWidth = this.mapChunkSize;
@@ -144,7 +132,7 @@ var Player = (function (_super) {
     };
     Player.prototype.act = function () {
         var _this = this;
-        Game.zombieManager.generateZombies(Game.zombieManager.zombieRate, Game.map.openFloorLocations, Game, Game.zombieManager, Game.player, Game.map, Game, Game, Game.engine, Game.display, Game.scheduler);
+        Game.zombieManager.generateZombies(Game.zombieManager.zombieRate, Game, Game.zombieManager, Game.player, Game.map, Game, Game, Game.engine, Game.display, Game.scheduler);
         Game.drawScreen();
         Game.engine.lock();
         this.keyboardEventListener = function (event) {
@@ -164,11 +152,6 @@ var Player = (function (_super) {
     };
     Player.prototype.handleEvent = function (e) {
         var code = e.keyCode;
-        if (code == 13 || code == 32) {
-            var cell = Game.map.cells[this.location.x][this.location.y];
-            (function () { return cell.activate(Game.player, Game, Game.map); })();
-            return;
-        }
         var keyMap = {};
         keyMap[38] = 0;
         keyMap[33] = 1;
@@ -186,11 +169,13 @@ var Player = (function (_super) {
         var dir = ROT.DIRS[8][keyMap[code]];
         var newX = this.location.x + dir[0];
         var newY = this.location.y + dir[1];
-        if (Game.map.cells[newX][newY].movement === 1 /* Blocked */) {
+        if (Game.map.getCell(new Point(newX, newY)).movement === 1 /* Blocked */) {
             return;
         }
         this.location.x = newX;
         this.location.y = newY;
+        var cell = Game.map.getCell(this.location);
+        (function () { return cell.activate(Game.player, Game, Game.map); })();
         window.removeEventListener('keydown', this.keyboardEventListener);
         Game.display.getContainer().removeEventListener('mousemove', this.mouseMoveEventListener);
         Game.display.getContainer().removeEventListener('mouseup', this.mouseUpEventListener);

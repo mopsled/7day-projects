@@ -1,9 +1,7 @@
 /// <reference path="common.d.ts" />
 interface GameMap {
-    width: number;
-    height: number;
-    cells: Cell[][];
-    openFloorLocations: Point[];
+    getEmptyLocation(): Point;
+    getCell(location: Point): Cell;
     setCell(location: Point, cell: Cell): any;
 }
 interface TileManager {
@@ -35,14 +33,15 @@ declare class BoxCell extends Cell {
     activate(inventoryManager: InventoryManager, statusManager: StatusManager, tileManager: TileManager): void;
 }
 declare class SinRandomMap implements GameMap {
-    width: number;
-    height: number;
-    cells: Cell[][];
-    openFloorLocations: Point[];
     randomMultipliers: number[];
-    constructor(width: number, height: number);
-    generateFloor(): void;
-    digCallback(x: number, y: number, wall: boolean): void;
-    generateBoxes(): void;
+    generatedCells: {
+        [x: string]: Cell;
+    };
+    emptyCells: Point[];
+    constructor();
+    getEmptyLocation(): Point;
+    getCell(location: Point): Cell;
     setCell(location: Point, cell: Cell): void;
+    generateNewCell(location: Point): TreeCell;
+    generateBoxCell(location: Point): BoxCell;
 }

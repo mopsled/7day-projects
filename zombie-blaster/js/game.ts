@@ -38,19 +38,17 @@ class Game {
     this.engine.start();
 
     this.drawScreen();
-    this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nSpace to loot');
+    this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nPick up * for ammo');
   }
 
   static generateMap() {
-    this.map = new SinRandomMap(500, 200);
+    this.map = new SinRandomMap();
 
-    var index = Math.floor(ROT.RNG.getUniform() * this.map.openFloorLocations.length);
-    var location = this.map.openFloorLocations.splice(index, 1)[0];
+    var location = this.map.getEmptyLocation();
     this.player = new Player(location);
 
     this.zombieManager.generateZombies(
-      1000 /* count */,
-      this.map.openFloorLocations,
+      400 /* count */,
       this /* CoordinateManager */,
       this.zombieManager,
       this.player /* Entity */,
@@ -82,24 +80,18 @@ class Game {
     var mapX = screenX + mapOffsetX;
     var mapY = screenY + mapOffsetY;
     var key = mapX + ',' + mapY;
+    var location = new Point(mapX, mapY);
 
     if (this.invalidScreenCoordinate(screenX, screenY)) {
-      return;
-    } else if (this.invalidMapCoordinate(mapX, mapY)) {
-      if (background) {
-        this.display.draw(screenX, screenY, ' ', '#aaa', background);
-      } else {
-        this.display.draw(screenX, screenY, ' ');
-      }
       return;
     }
 
     if (background) {
       var backgroundColor = ROT.Color.fromString(background);
-      var cellBackgroundColor = ROT.Color.fromString(this.map.cells[mapX][mapY].backgroundColor);
+      var cellBackgroundColor = ROT.Color.fromString(this.map.getCell(location).backgroundColor);
       background = ROT.Color.toHex(ROT.Color.add(backgroundColor, cellBackgroundColor));
     } else {
-      background = this.map.cells[mapX][mapY].backgroundColor;
+      background = this.map.getCell(location).backgroundColor;
     }
 
     if (this.player.location.x === mapX && this.player.location.y === mapY) {
@@ -112,8 +104,8 @@ class Game {
       this.display.draw(
         screenX, 
         screenY, 
-        this.map.cells[mapX][mapY].tile, 
-        this.map.cells[mapX][mapY].foregroundColor, 
+        this.map.getCell(location).tile, 
+        this.map.getCell(location).foregroundColor, 
         background);
     }
   }
@@ -150,11 +142,6 @@ class Game {
     var screenHeight = this.display.getOptions().height;
     return x < 0 || x >= screenWidth ||
            y < 0 || y >= screenWidth;
-  }
-
-  static invalidMapCoordinate(x: number, y: number) {
-    return x < 0 || x >= this.map.width ||
-           y < 0 || y >= this.map.height;
   }
 
   static convertMapCoordinatesToScreen(x: number, y: number) {
@@ -198,7 +185,6 @@ class Player extends Entity {
   act() {
     Game.zombieManager.generateZombies(
       Game.zombieManager.zombieRate /* count */,
-      Game.map.openFloorLocations,
       Game /* CoordinateManager */,
       Game.zombieManager,
       Game.player /* Entity */,
@@ -222,12 +208,7 @@ class Player extends Entity {
   
   handleEvent(e: KeyboardEvent) {
     var code = e.keyCode;
-    if (code == 13 || code == 32) {
-      var cell = Game.map.cells[this.location.x][this.location.y];
-      (() => cell.activate(Game.player, Game, Game.map))();
-      return;
-    }
-
+    
     var keyMap = {};
     keyMap[38] = 0;
     keyMap[33] = 1;
@@ -245,10 +226,13 @@ class Player extends Entity {
     var dir = ROT.DIRS[8][keyMap[code]];
     var newX = this.location.x + dir[0];
     var newY = this.location.y + dir[1];
-    if (Game.map.cells[newX][newY].movement === Movement.Blocked) { return; }
+    if (Game.map.getCell(new Point(newX, newY)).movement === Movement.Blocked) { return; }
 
     this.location.x = newX;
     this.location.y = newY;
+    var cell = Game.map.getCell(this.location);
+    (() => cell.activate(Game.player, Game, Game.map))();
+
     window.removeEventListener('keydown', this.keyboardEventListener);
     Game.display.getContainer().removeEventListener('mousemove', this.mouseMoveEventListener);
     Game.display.getContainer().removeEventListener('mouseup', this.mouseUpEventListener);

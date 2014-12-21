@@ -14,10 +14,9 @@ var ZombieManager = (function () {
         this.zombieRate = 1;
         this.zombiesKilled = 0;
     }
-    ZombieManager.prototype.generateZombies = function (count, openFloorLocations, coordinateManager, zombieManager, playerEntity, gameMap, statusManager, screenDrawer, engine, display, scheduler) {
+    ZombieManager.prototype.generateZombies = function (count, coordinateManager, zombieManager, playerEntity, gameMap, statusManager, screenDrawer, engine, display, scheduler) {
         for (var i = 0; i < count; i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * openFloorLocations.length);
-            var location = openFloorLocations.splice(index, 1)[0];
+            var location = gameMap.getEmptyLocation();
             var zombie = new Zombie(location, coordinateManager, zombieManager, playerEntity, gameMap, statusManager, screenDrawer, engine, display, scheduler);
             this.list.push(zombie);
             this.locations[zombie.location.x + ',' + zombie.location.y] = zombie.id;
@@ -101,9 +100,6 @@ var Zombie = (function (_super) {
         astar.compute(this.location.x, this.location.y, pathCallback);
         path.shift();
         if (path.length == 1) {
-            this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
-            this.screenDrawer.drawScreen();
-            this.engine.lock();
         }
         else if (path.length > 1) {
             delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
@@ -119,13 +115,10 @@ var Zombie = (function (_super) {
         this.display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
     };
     Zombie.prototype.canMoveToLocation = function (location) {
-        var invalidCoordinate = this.coordinateManager.invalidMapCoordinate(location.x, location.y);
-        if (!invalidCoordinate) {
-            var mapPassable = (this.map.cells[location.x][location.y].movement === 0 /* Unhindered */);
-            if (mapPassable) {
-                var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
-                return !anotherZombieAtLocation;
-            }
+        var mapPassable = (this.map.getCell(location).movement === 0 /* Unhindered */);
+        if (mapPassable) {
+            var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
+            return !anotherZombieAtLocation;
         }
         return false;
     };

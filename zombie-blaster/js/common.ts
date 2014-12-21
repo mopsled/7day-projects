@@ -13,24 +13,23 @@ interface StatusManager {
 }
 
 interface CoordinateManager {
-	convertMapCoordinatesToScreen(x: number, y: number);
-	convertScreenCoordinatesToMap(x: number, y: number);
+  convertMapCoordinatesToScreen(x: number, y: number);
+  convertScreenCoordinatesToMap(x: number, y: number);
   invalidScreenCoordinate(x: number, y: number);
-  invalidMapCoordinate(x: number, y: number);
 }
 
 interface ScreenDrawer {
-	drawScreen();
+  drawScreen();
 }
 
 class Entity {
-	location: Point;
-	id: number;
-	static idCounter = 0;
+  location: Point;
+  id: number;
+  static idCounter = 0;
 
-	constructor(location: Point) {
-  	this.location = location;
-  	Entity.idCounter++;
-  	this.id = Entity.idCounter;
-	}
+  constructor(location: Point) {
+    this.location = location;
+    Entity.idCounter++;
+    this.id = Entity.idCounter;
+  }
 }

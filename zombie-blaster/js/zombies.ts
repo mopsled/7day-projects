@@ -18,7 +18,6 @@ class ZombieManager {
 
   generateZombies(
     count: number,
-    openFloorLocations: Point[],
     coordinateManager: CoordinateManager, 
     zombieManager: ZombieManager, 
     playerEntity: Entity, 
@@ -30,8 +29,7 @@ class ZombieManager {
     scheduler: ROT.Scheduler) {
 
     for (var i = 0; i < count; i++) {
-      var index = Math.floor(ROT.RNG.getUniform() * openFloorLocations.length);
-      var location = openFloorLocations.splice(index, 1)[0];
+      var location = gameMap.getEmptyLocation();
       var zombie = new Zombie(
         location,
         coordinateManager,
@@ -154,9 +152,9 @@ class Zombie extends Entity {
 
     path.shift();
     if (path.length == 1) {
-      this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
-      this.screenDrawer.drawScreen();
-      this.engine.lock();
+      // this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
+      // this.screenDrawer.drawScreen();
+      // this.engine.lock();
     } else if (path.length > 1) {
       delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
       var x = path[0][0];
@@ -173,13 +171,10 @@ class Zombie extends Entity {
   }
 
   canMoveToLocation(location: Point) {
-    var invalidCoordinate = this.coordinateManager.invalidMapCoordinate(location.x, location.y);
-    if (!invalidCoordinate) {
-      var mapPassable = (this.map.cells[location.x][location.y].movement === Movement.Unhindered);
-      if (mapPassable) {
-        var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
-        return !anotherZombieAtLocation;
-      }
+    var mapPassable = (this.map.getCell(location).movement === Movement.Unhindered);
+    if (mapPassable) {
+      var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
+      return !anotherZombieAtLocation;
     }
 
     return false;

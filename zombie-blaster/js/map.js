@@ -62,53 +62,48 @@ var BoxCell = (function (_super) {
     return BoxCell;
 })(Cell);
 var SinRandomMap = (function () {
-    function SinRandomMap(width, height) {
-        this.width = width;
-        this.height = height;
-        this.cells = [];
-        this.openFloorLocations = [];
+    function SinRandomMap() {
+        this.generatedCells = {};
+        this.emptyCells = [];
         this.randomMultipliers = [Math.random() * 0.6 + 0.4, Math.random() * 0.6 + 0.4, Math.random() * 0.2 + 0.8];
-        this.generateFloor();
-        this.generateBoxes();
-    }
-    SinRandomMap.prototype.generateFloor = function () {
-        var _this = this;
-        for (var i = 0; i < this.width; i++) {
-            var row = [];
-            for (var j = 0; j < this.height; j++) {
-                row.push(new FloorCell(new Point(i, j)));
+        for (var i = 0; i < 200; i++) {
+            for (var j = 0; j < 200; j++) {
+                this.getCell(new Point(i, j));
             }
-            this.cells.push(row);
         }
-        var map = new ROT.Map.Arena(this.width, this.height);
-        map.create(function (x, y, wall) {
-            _this.digCallback(x, y, wall);
-        });
+    }
+    SinRandomMap.prototype.getEmptyLocation = function () {
+        return this.emptyCells.random();
     };
-    SinRandomMap.prototype.digCallback = function (x, y, wall) {
-        var point = new Point(x, y);
-        if (x == 0 || y == 0 || x >= this.width || y >= this.height) {
-            this.cells[x][y] = new TreeCell(point);
+    SinRandomMap.prototype.getCell = function (location) {
+        var locationKey = location.x + ',' + location.y;
+        var cell = this.generatedCells[locationKey];
+        if (cell) {
+            return cell;
         }
-        else if (Math.sin(x * this.randomMultipliers[0]) * Math.sin(y * this.randomMultipliers[1]) * Math.sin(x * y * this.randomMultipliers[2]) > 0.4) {
-            this.cells[x][y] = new TreeCell(point);
-        }
-        else {
-            this.cells[x][y] = new FloorCell(point);
-            this.openFloorLocations.push(point);
-        }
-    };
-    SinRandomMap.prototype.generateBoxes = function () {
-        for (var i = 0; i < 500; i++) {
-            var index = Math.floor(ROT.RNG.getUniform() * this.openFloorLocations.length);
-            var point = this.openFloorLocations.splice(index, 1)[0];
-            var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 8;
-            var box = new BoxCell(point, ammoAmount);
-            this.cells[point.x][point.y] = box;
-        }
+        cell = this.generateNewCell(location);
+        this.generatedCells[locationKey] = cell;
+        return cell;
     };
     SinRandomMap.prototype.setCell = function (location, cell) {
-        this.cells[location.x][location.y] = cell;
+        var locationKey = location.x + ',' + location.y;
+        this.generatedCells[locationKey] = cell;
+    };
+    SinRandomMap.prototype.generateNewCell = function (location) {
+        if (Math.sin(location.x * this.randomMultipliers[0]) * Math.sin(location.y * this.randomMultipliers[1]) * Math.sin(location.x * location.y * this.randomMultipliers[2]) > 0.4) {
+            return new TreeCell(location);
+        }
+        else if (ROT.RNG.getUniform() <= 0.005) {
+            return this.generateBoxCell(location);
+        }
+        else {
+            this.emptyCells.push(location);
+            return new FloorCell(location);
+        }
+    };
+    SinRandomMap.prototype.generateBoxCell = function (location) {
+        var ammoAmount = Math.ceil(ROT.RNG.getUniform() * 12) + 8;
+        return new BoxCell(location, ammoAmount);
     };
     return SinRandomMap;
 })();

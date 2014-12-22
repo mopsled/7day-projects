@@ -45,52 +45,60 @@ var Zombie = (function (_super) {
         return 100;
     };
     Zombie.prototype.act = function () {
-        var _this = this;
-        var screenXY = this.coordinateManager.convertMapCoordinatesToScreen(this.location.x, this.location.y);
-        if (this.coordinateManager.invalidScreenCoordinate(screenXY[0], screenXY[1])) {
-            var movX = [-1, 0, 1].random();
-            var movY = [-1, 0, 1].random();
-            if (this.canMoveToLocation(new Point(this.location.x + movX, this.location.y + movY))) {
-                delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
-                this.location.x += movX;
-                this.location.y += movY;
-                this.zombieManager.locations[this.location.x + ',' + this.location.y] = this.id;
-            }
-            return;
-        }
         var playerX = this.playerEntity.location.x;
         var playerY = this.playerEntity.location.y;
         var distanceToPlayer = Math.sqrt(Math.pow(this.location.x - playerX, 2) + Math.pow(this.location.y - playerY, 2));
-        if (distanceToPlayer > 4) {
-            var movDirection = ['x', 'y'].random();
-            var newX, newY;
-            if (movDirection === 'x') {
-                if (playerX > this.location.x) {
-                    newX = this.location.x + 1;
-                }
-                else {
-                    newX = this.location.x - 1;
-                }
-                newY = this.location.y;
+        if (distanceToPlayer > 50) {
+            this.performWanderBehavior();
+        }
+        else if (distanceToPlayer > 4) {
+            this.performDistantPlayerVisibleBehavior(this.playerEntity.location);
+        }
+        else {
+            this.performNearPlayerVisibleBehavior(this.playerEntity.location);
+        }
+    };
+    Zombie.prototype.performWanderBehavior = function () {
+        var movX = [-1, 0, 1].random();
+        var movY = [-1, 0, 1].random();
+        if (this.canMoveToLocation(new Point(this.location.x + movX, this.location.y + movY))) {
+            delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
+            this.location.x += movX;
+            this.location.y += movY;
+            this.zombieManager.locations[this.location.x + ',' + this.location.y] = this.id;
+        }
+    };
+    Zombie.prototype.performDistantPlayerVisibleBehavior = function (playerLocation) {
+        var movDirection = ['x', 'y'].random();
+        var newX, newY;
+        if (movDirection === 'x') {
+            if (playerLocation.x > this.location.x) {
+                newX = this.location.x + 1;
             }
             else {
-                if (playerY > this.location.y) {
-                    newY = this.location.y + 1;
-                }
-                else {
-                    newY = this.location.y - 1;
-                }
-                newX = this.location.x;
+                newX = this.location.x - 1;
             }
-            if (this.canMoveToLocation(new Point(newX, newY))) {
-                delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
-                this.location.x = newX;
-                this.location.y = newY;
-                this.zombieManager.locations[newX + ',' + newY] = this.id;
-            }
-            return;
+            newY = this.location.y;
         }
-        var astar = new ROT.Path.AStar(playerX, playerY, function (x, y) {
+        else {
+            if (playerLocation.y > this.location.y) {
+                newY = this.location.y + 1;
+            }
+            else {
+                newY = this.location.y - 1;
+            }
+            newX = this.location.x;
+        }
+        if (this.canMoveToLocation(new Point(newX, newY))) {
+            delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
+            this.location.x = newX;
+            this.location.y = newY;
+            this.zombieManager.locations[newX + ',' + newY] = this.id;
+        }
+    };
+    Zombie.prototype.performNearPlayerVisibleBehavior = function (playerLocation) {
+        var _this = this;
+        var astar = new ROT.Path.AStar(playerLocation.x, playerLocation.y, function (x, y) {
             return _this.canMoveToLocation(new Point(x, y));
         }, { topology: 4 });
         var path = [];

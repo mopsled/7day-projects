@@ -27,6 +27,9 @@ declare class Zombie extends Entity {
     constructor(location: Point, coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, map: GameMap, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler);
     getSpeed(): number;
     act(): void;
+    performWanderBehavior(): void;
+    performDistantPlayerVisibleBehavior(playerLocation: Point): void;
+    performNearPlayerVisibleBehavior(playerLocation: Point): void;
     draw(x: number, y: number, background: string): void;
     canMoveToLocation(location: Point): boolean;
     anotherZombieAtCoordinates(x: number, y: number): boolean;

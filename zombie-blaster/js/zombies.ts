@@ -1,14 +1,14 @@
 /// <reference path="common.d.ts" />
 
 class ZombieManager {
-  list: any[];
-  locations: {[index: string]: number};
-  lookupById: {[index: number]: any}
   zombiesKilled: number;
-  playerEntity: Entity;
-  scheduler: ROT.Scheduler;
   mapPassibilityManager: MapPassibilityManager;
-  gameOverManager: GameOverManager;
+  private list: any[];
+  private locations: {[index: string]: number};
+  private lookupById: {[index: number]: any}
+  private playerEntity: Entity;
+  private scheduler: ROT.Scheduler;
+  private gameOverManager: GameOverManager;
 
   constructor(
     playerEntity: Entity,
@@ -51,6 +51,12 @@ class ZombieManager {
     delete this.locations[key];
     this.scheduler.remove(zombie);
     this.zombiesKilled++;
+  }
+
+  zombieAtLocation(location: Point) {
+    var key = location.x + ',' + location.y;
+    var zombieId = this.locations[key];
+    return this.lookupById[zombieId];
   }
 }
 
@@ -165,22 +171,19 @@ class Zombie extends Entity {
   canMoveToLocation(location: Point) {
     var mapPassable = this.mapPassibilityManager.mapPassableAtLocation(location);
     if (mapPassable) {
-      var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
+      var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location);
       return !anotherZombieAtLocation;
     }
 
     return false;
   }
 
-  anotherZombieAtCoordinates(x: number, y: number) {
-    var key = x + ',' + y;
-    if (this.zombieManager.locations[key] === this.id) {
+  anotherZombieAtCoordinates(location: Point) {
+    var zombieAtCoordinates = this.zombieManager.zombieAtLocation(location);
+    if (!zombieAtCoordinates || zombieAtCoordinates.id === this.id) {
       return false;
     }
-    if (key in this.zombieManager.locations) {
-      return true;
-    }
-    return false;
+    return true;
   }
 
   takeDamage(damage: number) {

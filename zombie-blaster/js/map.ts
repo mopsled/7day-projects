@@ -140,3 +140,42 @@ class SinRandomMap implements GameMap {
     return new BoxCell(location, ammoAmount);
   }
 }
+
+class EmptyMap implements GameMap {
+  generatedCells: { [locationString: string]: Cell; };
+  emptyCells: Point[];
+
+  constructor() {
+    this.generatedCells = {};
+    this.emptyCells = [];
+
+    for (var i = 0; i < 100; i++) {
+      for (var j = 0; j < 100; j++) {
+        this.getCell(new Point(i, j));
+      }
+    }
+  }
+
+  getEmptyLocation() {
+    return this.emptyCells.random();
+  }
+
+  getCell(location: Point) {
+    var locationKey = location.x + ',' + location.y;
+
+    var cell = this.generatedCells[locationKey];
+    if (cell) {
+      return cell;
+    }
+
+    cell = new FloorCell(location);
+    this.generatedCells[locationKey] = cell;
+    this.emptyCells.push(location);
+    return cell;
+  }
+
+  setCell(location: Point, cell: Cell) {
+    var locationKey = location.x + ',' + location.y;
+    this.generatedCells[locationKey] = cell;
+  }
+}

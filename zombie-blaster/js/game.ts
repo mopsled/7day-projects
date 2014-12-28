@@ -69,7 +69,6 @@ class Game {
 
     var mapX = screenX + mapOffsetX;
     var mapY = screenY + mapOffsetY;
-    var key = mapX + ',' + mapY;
     var location = new Point(mapX, mapY);
 
     if (this.invalidScreenCoordinate(screenX, screenY)) {
@@ -86,10 +85,12 @@ class Game {
 
     if (this.player.location.x === mapX && this.player.location.y === mapY) {
       this.player.draw(screenX, screenY, background);
-    } else if (key in this.zombieManager.locations) {
-      var id = this.zombieManager.locations[key];
-      var zombie = this.zombieManager.lookupById[id];
-      zombie.draw(this.display, screenX, screenY, background);
+      return;
+    }
+
+    var zombieAtLocation = this.zombieManager.zombieAtLocation(location);
+    if (zombieAtLocation !== undefined) {
+      zombieAtLocation.draw(this.display, screenX, screenY, background);
     } else {
       this.display.draw(
         screenX, 
@@ -295,12 +296,12 @@ class Shotgun {
 
     for (var i = 0; i < this.currentlyAimed.length; i++) {
       var point = Game.convertScreenCoordinatesToMap(this.currentlyAimed[i].point.x, this.currentlyAimed[i].point.y);
-      var key = point[0] + ',' + point[1];
+      var location = new Point(point[0], point[1]);
 
-      if (key in Game.zombieManager.locations) {
-        var zombie = Game.zombieManager.lookupById[Game.zombieManager.locations[key]];
+      var zombieAtLocation = Game.zombieManager.zombieAtLocation(location);
+      if (zombieAtLocation !== undefined) {
         var intensity = this.currentlyAimed[i].intensity;
-        var died = zombie.takeDamage(intensity);
+        var died = zombieAtLocation.takeDamage(intensity);
         if (died) {
           zombiesDied++;
         } else {

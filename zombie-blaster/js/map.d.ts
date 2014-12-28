@@ -48,3 +48,13 @@ declare class SinRandomMap implements GameMap {
     generateNewCell(location: Point): TreeCell;
     generateBoxCell(location: Point): BoxCell;
 }
+declare class EmptyMap implements GameMap {
+    generatedCells: {
+        [x: string]: Cell;
+    };
+    emptyCells: Point[];
+    constructor();
+    getEmptyLocation(): Point;
+    getCell(location: Point): Cell;
+    setCell(location: Point, cell: Cell): void;
+}

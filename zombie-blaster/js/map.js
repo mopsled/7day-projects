@@ -116,4 +116,34 @@ var SinRandomMap = (function () {
     };
     return SinRandomMap;
 })();
+var EmptyMap = (function () {
+    function EmptyMap() {
+        this.generatedCells = {};
+        this.emptyCells = [];
+        for (var i = 0; i < 100; i++) {
+            for (var j = 0; j < 100; j++) {
+                this.getCell(new Point(i, j));
+            }
+        }
+    }
+    EmptyMap.prototype.getEmptyLocation = function () {
+        return this.emptyCells.random();
+    };
+    EmptyMap.prototype.getCell = function (location) {
+        var locationKey = location.x + ',' + location.y;
+        var cell = this.generatedCells[locationKey];
+        if (cell) {
+            return cell;
+        }
+        cell = new FloorCell(location);
+        this.generatedCells[locationKey] = cell;
+        this.emptyCells.push(location);
+        return cell;
+    };
+    EmptyMap.prototype.setCell = function (location, cell) {
+        var locationKey = location.x + ',' + location.y;
+        this.generatedCells[locationKey] = cell;
+    };
+    return EmptyMap;
+})();
 //# sourceMappingURL=map.js.map

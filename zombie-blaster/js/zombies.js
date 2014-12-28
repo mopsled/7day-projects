@@ -34,6 +34,11 @@ var ZombieManager = (function () {
         this.scheduler.remove(zombie);
         this.zombiesKilled++;
     };
+    ZombieManager.prototype.zombieAtLocation = function (location) {
+        var key = location.x + ',' + location.y;
+        var zombieId = this.locations[key];
+        return this.lookupById[zombieId];
+    };
     return ZombieManager;
 })();
 var Zombie = (function (_super) {
@@ -131,20 +136,17 @@ var Zombie = (function (_super) {
     Zombie.prototype.canMoveToLocation = function (location) {
         var mapPassable = this.mapPassibilityManager.mapPassableAtLocation(location);
         if (mapPassable) {
-            var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
+            var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location);
             return !anotherZombieAtLocation;
         }
         return false;
     };
-    Zombie.prototype.anotherZombieAtCoordinates = function (x, y) {
-        var key = x + ',' + y;
-        if (this.zombieManager.locations[key] === this.id) {
+    Zombie.prototype.anotherZombieAtCoordinates = function (location) {
+        var zombieAtCoordinates = this.zombieManager.zombieAtLocation(location);
+        if (!zombieAtCoordinates || zombieAtCoordinates.id === this.id) {
             return false;
         }
-        if (key in this.zombieManager.locations) {
-            return true;
-        }
-        return false;
+        return true;
     };
     Zombie.prototype.takeDamage = function (damage) {
         this.health -= damage;

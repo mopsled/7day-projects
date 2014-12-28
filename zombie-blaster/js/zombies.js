@@ -64,6 +64,9 @@ var Zombie = (function (_super) {
         else if (distanceToPlayer > 4) {
             this.performDistantPlayerVisibleBehavior(this.playerEntity.location);
         }
+        else if (distanceToPlayer === 0) {
+            this.gameOverManager.setGameOver('eaten', 'zombie');
+        }
         else {
             this.performNearPlayerVisibleBehavior(this.playerEntity.location);
         }

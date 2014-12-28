@@ -1,4 +1,5 @@
 /// <reference path="common.d.ts" />
+/// <reference path="zombies.d.ts" />
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -62,9 +63,11 @@ var BoxCell = (function (_super) {
     return BoxCell;
 })(Cell);
 var SinRandomMap = (function () {
-    function SinRandomMap() {
+    function SinRandomMap(zombieManager) {
         this.generatedCells = {};
         this.emptyCells = [];
+        this.zombieManager = zombieManager;
+        this.zombieManager.mapPassibilityManager = this;
         this.randomMultipliers = [Math.random() * 0.6 + 0.4, Math.random() * 0.6 + 0.4, Math.random() * 0.2 + 0.8];
         for (var i = 0; i < 200; i++) {
             for (var j = 0; j < 200; j++) {
@@ -89,6 +92,9 @@ var SinRandomMap = (function () {
         var locationKey = location.x + ',' + location.y;
         this.generatedCells[locationKey] = cell;
     };
+    SinRandomMap.prototype.mapPassableAtLocation = function (location) {
+        return (this.getCell(location).movement === 0 /* Unhindered */);
+    };
     SinRandomMap.prototype.generateNewCell = function (location) {
         if (Math.sin(location.x * this.randomMultipliers[0]) * Math.sin(location.y * this.randomMultipliers[1]) * Math.sin(location.x * location.y * this.randomMultipliers[2]) > 0.4) {
             return new TreeCell(location);
@@ -97,6 +103,9 @@ var SinRandomMap = (function () {
             return this.generateBoxCell(location);
         }
         else {
+            if (ROT.RNG.getUniform() <= 0.010) {
+                this.zombieManager.addZombieAtLocation(location);
+            }
             this.emptyCells.push(location);
             return new FloorCell(location);
         }

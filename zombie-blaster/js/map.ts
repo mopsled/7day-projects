@@ -1,4 +1,5 @@
 /// <reference path="common.d.ts" />
+/// <reference path="zombies.d.ts" />
 
 interface GameMap {
   getEmptyLocation(): Point;
@@ -73,10 +74,13 @@ class SinRandomMap implements GameMap {
   randomMultipliers: number[];
   generatedCells: { [locationString: string]: Cell; };
   emptyCells: Point[];
+  zombieManager: ZombieManager;
 
-  constructor() {
+  constructor(zombieManager: ZombieManager) {
     this.generatedCells = {};
     this.emptyCells = [];
+    this.zombieManager = zombieManager;
+    this.zombieManager.mapPassibilityManager = this;
 
     this.randomMultipliers = [Math.random()* 0.6 + 0.4, Math.random()* 0.6 + 0.4, Math.random()* 0.2 + 0.8];
 
@@ -109,6 +113,10 @@ class SinRandomMap implements GameMap {
     this.generatedCells[locationKey] = cell;
   }
 
+  mapPassableAtLocation(location: Point) {
+    return (this.getCell(location).movement === Movement.Unhindered);
+  }
+
   generateNewCell(location: Point) {
     if (Math.sin(location.x*this.randomMultipliers[0])
       * Math.sin(location.y*this.randomMultipliers[1])
@@ -119,6 +127,9 @@ class SinRandomMap implements GameMap {
     } else if (ROT.RNG.getUniform() <= 0.005) {
       return this.generateBoxCell(location);
     } else {
+      if (ROT.RNG.getUniform() <= 0.010) {
+        this.zombieManager.addZombieAtLocation(location);
+      }
       this.emptyCells.push(location);
       return new FloorCell(location);
     }

@@ -1,4 +1,5 @@
 /// <reference path="common.d.ts" />
+/// <reference path="zombies.d.ts" />
 interface GameMap {
     getEmptyLocation(): Point;
     getCell(location: Point): Cell;
@@ -38,10 +39,12 @@ declare class SinRandomMap implements GameMap {
         [x: string]: Cell;
     };
     emptyCells: Point[];
-    constructor();
+    zombieManager: ZombieManager;
+    constructor(zombieManager: ZombieManager);
     getEmptyLocation(): Point;
     getCell(location: Point): Cell;
     setCell(location: Point, cell: Cell): void;
+    mapPassableAtLocation(location: Point): boolean;
     generateNewCell(location: Point): TreeCell;
     generateBoxCell(location: Point): BoxCell;
 }

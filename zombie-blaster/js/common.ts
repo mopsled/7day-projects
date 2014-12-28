@@ -22,6 +22,10 @@ interface ScreenDrawer {
   drawScreen();
 }
 
+interface MapPassibilityManager {
+  mapPassableAtLocation(location: Point);
+}
+
 class Entity {
   location: Point;
   id: number;

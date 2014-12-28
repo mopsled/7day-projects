@@ -1,5 +1,4 @@
 /// <reference path="common.d.ts" />
-/// <reference path="map.d.ts" />
 declare class ZombieManager {
     list: any[];
     locations: {
@@ -10,21 +9,29 @@ declare class ZombieManager {
     };
     zombieRate: number;
     zombiesKilled: number;
-    constructor();
-    generateZombies(count: number, coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, gameMap: GameMap, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler): void;
+    coordinateManager: CoordinateManager;
+    playerEntity: Entity;
+    statusManager: StatusManager;
+    engine: ROT.Engine;
+    screenDrawer: ScreenDrawer;
+    display: ROT.Display;
+    scheduler: ROT.Scheduler;
+    mapPassibilityManager: MapPassibilityManager;
+    constructor(coordinateManager: CoordinateManager, playerEntity: Entity, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler);
+    addZombieAtLocation(location: Point): void;
 }
 declare class Zombie extends Entity {
     health: number;
     coordinateManager: CoordinateManager;
     zombieManager: ZombieManager;
     playerEntity: Entity;
-    map: GameMap;
     statusManager: StatusManager;
     engine: ROT.Engine;
     screenDrawer: ScreenDrawer;
     display: ROT.Display;
     scheduler: ROT.Scheduler;
-    constructor(location: Point, coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, map: GameMap, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler);
+    mapPassibilityManager: MapPassibilityManager;
+    constructor(location: Point, coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler, mapPassibilityManager: MapPassibilityManager);
     getSpeed(): number;
     act(): void;
     performWanderBehavior(): void;

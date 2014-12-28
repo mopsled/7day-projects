@@ -1,5 +1,4 @@
 /// <reference path="common.d.ts" />
-/// <reference path="map.d.ts" />
 var __extends = this.__extends || function (d, b) {
     for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p];
     function __() { this.constructor = d; }
@@ -7,38 +6,42 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 var ZombieManager = (function () {
-    function ZombieManager() {
+    function ZombieManager(coordinateManager, playerEntity, statusManager, screenDrawer, engine, display, scheduler) {
         this.list = [];
         this.locations = {};
         this.lookupById = {};
         this.zombieRate = 1;
         this.zombiesKilled = 0;
-    }
-    ZombieManager.prototype.generateZombies = function (count, coordinateManager, zombieManager, playerEntity, gameMap, statusManager, screenDrawer, engine, display, scheduler) {
-        for (var i = 0; i < count; i++) {
-            var location = gameMap.getEmptyLocation();
-            var zombie = new Zombie(location, coordinateManager, zombieManager, playerEntity, gameMap, statusManager, screenDrawer, engine, display, scheduler);
-            this.list.push(zombie);
-            this.locations[zombie.location.x + ',' + zombie.location.y] = zombie.id;
-            this.lookupById[zombie.id] = zombie;
-            scheduler.add(zombie, true);
-        }
-    };
-    return ZombieManager;
-})();
-var Zombie = (function (_super) {
-    __extends(Zombie, _super);
-    function Zombie(location, coordinateManager, zombieManager, playerEntity, map, statusManager, screenDrawer, engine, display, scheduler) {
-        _super.call(this, location);
         this.coordinateManager = coordinateManager;
-        this.zombieManager = zombieManager;
         this.playerEntity = playerEntity;
-        this.map = map;
         this.statusManager = statusManager;
         this.screenDrawer = screenDrawer;
         this.engine = engine;
         this.display = display;
         this.scheduler = scheduler;
+    }
+    ZombieManager.prototype.addZombieAtLocation = function (location) {
+        var zombie = new Zombie(location, this.coordinateManager, this, this.playerEntity, this.statusManager, this.screenDrawer, this.engine, this.display, this.scheduler, this.mapPassibilityManager);
+        this.list.push(zombie);
+        this.locations[zombie.location.x + ',' + zombie.location.y] = zombie.id;
+        this.lookupById[zombie.id] = zombie;
+        this.scheduler.add(zombie, true);
+    };
+    return ZombieManager;
+})();
+var Zombie = (function (_super) {
+    __extends(Zombie, _super);
+    function Zombie(location, coordinateManager, zombieManager, playerEntity, statusManager, screenDrawer, engine, display, scheduler, mapPassibilityManager) {
+        _super.call(this, location);
+        this.coordinateManager = coordinateManager;
+        this.zombieManager = zombieManager;
+        this.playerEntity = playerEntity;
+        this.statusManager = statusManager;
+        this.screenDrawer = screenDrawer;
+        this.engine = engine;
+        this.display = display;
+        this.scheduler = scheduler;
+        this.mapPassibilityManager = mapPassibilityManager;
         this.health = 100;
     }
     Zombie.prototype.getSpeed = function () {
@@ -126,7 +129,7 @@ var Zombie = (function (_super) {
         this.display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
     };
     Zombie.prototype.canMoveToLocation = function (location) {
-        var mapPassable = (this.map.getCell(location).movement === 0 /* Unhindered */);
+        var mapPassable = this.mapPassibilityManager.mapPassableAtLocation(location);
         if (mapPassable) {
             var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
             return !anotherZombieAtLocation;

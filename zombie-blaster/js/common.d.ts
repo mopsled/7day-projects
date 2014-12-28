@@ -18,6 +18,9 @@ interface CoordinateManager {
 interface ScreenDrawer {
     drawScreen(): any;
 }
+interface MapPassibilityManager {
+    mapPassableAtLocation(location: Point): any;
+}
 declare class Entity {
     location: Point;
     id: number;

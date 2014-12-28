@@ -23,7 +23,6 @@ class Game {
   static stats = new GameStats();
 
   static init() {
-    this.zombieManager = new ZombieManager();
     this.statusChunkSize = 30;
     this.mapChunkSize = 80;
     this.status = '';
@@ -32,32 +31,27 @@ class Game {
     
     this.scheduler = new ROT.Scheduler.Simple();
     this.engine = new ROT.Engine(this.scheduler);
-    this.generateMap();
+
+    this.player = new Player(location);
+    this.zombieManager = new ZombieManager(
+      this /* CoordinateManager */,
+      this.player /* Entity */,
+      this /* StatusManager */,
+      this /* ScreenDrawer */,
+      this.engine,
+      this.display,
+      this.scheduler);
+
+    this.map = new SinRandomMap(this.zombieManager);
+
+    var location = this.map.getEmptyLocation();
+    this.player.location = location;
 
     this.scheduler.add(this.player, true);
     this.engine.start();
 
     this.drawScreen();
     this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nPick up * for ammo');
-  }
-
-  static generateMap() {
-    this.map = new SinRandomMap();
-
-    var location = this.map.getEmptyLocation();
-    this.player = new Player(location);
-
-    this.zombieManager.generateZombies(
-      400 /* count */,
-      this /* CoordinateManager */,
-      this.zombieManager,
-      this.player /* Entity */,
-      this.map,
-      this /* StatusManager */,
-      this /* ScreenDrawer */,
-      this.engine,
-      this.display,
-      this.scheduler);
   }
   
   static drawScreen() {
@@ -183,17 +177,6 @@ class Player extends Entity {
   }
 
   act() {
-    Game.zombieManager.generateZombies(
-      Game.zombieManager.zombieRate /* count */,
-      Game /* CoordinateManager */,
-      Game.zombieManager,
-      Game.player /* Entity */,
-      Game.map,
-      Game /* StatusManager */,
-      Game /* ScreenDrawer */,
-      Game.engine,
-      Game.display,
-      Game.scheduler);
     Game.drawScreen();
     Game.engine.lock();
     this.keyboardEventListener = (event: KeyboardEvent) => {this.handleEvent(event)};

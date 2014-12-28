@@ -17,7 +17,6 @@ var Game = (function () {
     function Game() {
     }
     Game.init = function () {
-        this.zombieManager = new ZombieManager();
         this.statusChunkSize = 30;
         this.mapChunkSize = 80;
         this.status = '';
@@ -25,17 +24,15 @@ var Game = (function () {
         document.body.appendChild(this.display.getContainer());
         this.scheduler = new ROT.Scheduler.Simple();
         this.engine = new ROT.Engine(this.scheduler);
-        this.generateMap();
+        this.player = new Player(location);
+        this.zombieManager = new ZombieManager(this, this.player, this, this, this.engine, this.display, this.scheduler);
+        this.map = new SinRandomMap(this.zombieManager);
+        var location = this.map.getEmptyLocation();
+        this.player.location = location;
         this.scheduler.add(this.player, true);
         this.engine.start();
         this.drawScreen();
         this.setStatus('%c{yellow}Arrow keys move\nMouse to aim\nClick to shoot\nPick up * for ammo');
-    };
-    Game.generateMap = function () {
-        this.map = new SinRandomMap();
-        var location = this.map.getEmptyLocation();
-        this.player = new Player(location);
-        this.zombieManager.generateZombies(400, this, this.zombieManager, this.player, this.map, this, this, this.engine, this.display, this.scheduler);
     };
     Game.drawScreen = function () {
         for (var x = this.statusChunkSize; x < this.display.getOptions().width; x++) {
@@ -132,7 +129,6 @@ var Player = (function (_super) {
     };
     Player.prototype.act = function () {
         var _this = this;
-        Game.zombieManager.generateZombies(Game.zombieManager.zombieRate, Game, Game.zombieManager, Game.player, Game.map, Game, Game, Game.engine, Game.display, Game.scheduler);
         Game.drawScreen();
         Game.engine.lock();
         this.keyboardEventListener = function (event) {

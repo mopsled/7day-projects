@@ -17,7 +17,6 @@ declare class Game {
     static zombieManager: ZombieManager;
     static stats: GameStats;
     static init(): void;
-    static generateMap(): void;
     static drawScreen(): void;
     static drawCell(screenX: number, screenY: number, background?: string): void;
     static drawStatusSection(): void;

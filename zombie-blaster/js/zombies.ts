@@ -1,5 +1,4 @@
 /// <reference path="common.d.ts" />
-/// <reference path="map.d.ts" />
 
 class ZombieManager {
   list: any[];
@@ -7,46 +6,55 @@ class ZombieManager {
   lookupById: {[index: number]: any}
   zombieRate: number;
   zombiesKilled: number;
+  coordinateManager: CoordinateManager;
+  playerEntity: Entity;
+  statusManager: StatusManager;
+  engine: ROT.Engine;
+  screenDrawer: ScreenDrawer;
+  display: ROT.Display;
+  scheduler: ROT.Scheduler;
+  mapPassibilityManager: MapPassibilityManager;
 
-  constructor() {
-    this.list = [];
-    this.locations = {};
-    this.lookupById = {};
-    this.zombieRate = 1;
-    this.zombiesKilled = 0;
-  }
-
-  generateZombies(
-    count: number,
+  constructor(
     coordinateManager: CoordinateManager, 
-    zombieManager: ZombieManager, 
-    playerEntity: Entity, 
-    gameMap: GameMap,
+    playerEntity: Entity,
     statusManager: StatusManager,
     screenDrawer: ScreenDrawer,
     engine: ROT.Engine,
     display: ROT.Display,
     scheduler: ROT.Scheduler) {
+    this.list = [];
+    this.locations = {};
+    this.lookupById = {};
+    this.zombieRate = 1;
+    this.zombiesKilled = 0;
 
-    for (var i = 0; i < count; i++) {
-      var location = gameMap.getEmptyLocation();
-      var zombie = new Zombie(
-        location,
-        coordinateManager,
-        zombieManager,
-        playerEntity,
-        gameMap,
-        statusManager,
-        screenDrawer,
-        engine,
-        display,
-        scheduler);
+    this.coordinateManager = coordinateManager;
+    this.playerEntity = playerEntity;
+    this.statusManager = statusManager;
+    this.screenDrawer = screenDrawer;
+    this.engine = engine;
+    this.display = display;
+    this.scheduler = scheduler;
+  }
 
-      this.list.push(zombie);
-      this.locations[zombie.location.x + ',' + zombie.location.y] = zombie.id;
-      this.lookupById[zombie.id] = zombie;
-      scheduler.add(zombie, true);
-    }
+  addZombieAtLocation(location: Point) {
+    var zombie = new Zombie(
+      location,
+      this.coordinateManager,
+      this,
+      this.playerEntity,
+      this.statusManager,
+      this.screenDrawer,
+      this.engine,
+      this.display,
+      this.scheduler,
+      this.mapPassibilityManager);
+
+    this.list.push(zombie);
+    this.locations[zombie.location.x + ',' + zombie.location.y] = zombie.id;
+    this.lookupById[zombie.id] = zombie;
+    this.scheduler.add(zombie, true);
   }
 }
 
@@ -55,35 +63,35 @@ class Zombie extends Entity {
   coordinateManager: CoordinateManager;
   zombieManager: ZombieManager;
   playerEntity: Entity;
-  map: GameMap;
   statusManager: StatusManager;
   engine: ROT.Engine;
   screenDrawer: ScreenDrawer;
   display: ROT.Display;
   scheduler: ROT.Scheduler;
+  mapPassibilityManager: MapPassibilityManager;
 
   constructor(
     location: Point, 
     coordinateManager: CoordinateManager, 
     zombieManager: ZombieManager, 
     playerEntity: Entity, 
-    map: GameMap,
     statusManager: StatusManager,
     screenDrawer: ScreenDrawer,
     engine: ROT.Engine,
     display: ROT.Display,
-    scheduler: ROT.Scheduler) {
+    scheduler: ROT.Scheduler,
+    mapPassibilityManager: MapPassibilityManager) {
 
     super(location);
     this.coordinateManager = coordinateManager;
     this.zombieManager = zombieManager;
     this.playerEntity = playerEntity;
-    this.map = map;
     this.statusManager = statusManager;
     this.screenDrawer = screenDrawer;
     this.engine = engine;
     this.display = display;
     this.scheduler = scheduler;
+    this.mapPassibilityManager = mapPassibilityManager;
     this.health = 100;
   }
   
@@ -176,7 +184,7 @@ class Zombie extends Entity {
   }
 
   canMoveToLocation(location: Point) {
-    var mapPassable = (this.map.getCell(location).movement === Movement.Unhindered);
+    var mapPassable = this.mapPassibilityManager.mapPassableAtLocation(location);
     if (mapPassable) {
       var anotherZombieAtLocation = this.anotherZombieAtCoordinates(location.x, location.y);
       return !anotherZombieAtLocation;

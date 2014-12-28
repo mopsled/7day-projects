@@ -8,18 +8,12 @@ interface InventoryManager {
   ammo: number;
 }
 
+interface GameOverManager {
+  setGameOver(killedHow: string, killedByWhat: string);
+}
+
 interface StatusManager {
   setStatus(status: string);
-}
-
-interface CoordinateManager {
-  convertMapCoordinatesToScreen(x: number, y: number);
-  convertScreenCoordinatesToMap(x: number, y: number);
-  invalidScreenCoordinate(x: number, y: number);
-}
-
-interface ScreenDrawer {
-  drawScreen();
 }
 
 interface MapPassibilityManager {

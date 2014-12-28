@@ -7,37 +7,29 @@ declare class ZombieManager {
     lookupById: {
         [x: number]: any;
     };
-    zombieRate: number;
     zombiesKilled: number;
-    coordinateManager: CoordinateManager;
     playerEntity: Entity;
-    statusManager: StatusManager;
-    engine: ROT.Engine;
-    screenDrawer: ScreenDrawer;
-    display: ROT.Display;
     scheduler: ROT.Scheduler;
     mapPassibilityManager: MapPassibilityManager;
-    constructor(coordinateManager: CoordinateManager, playerEntity: Entity, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler);
+    gameOverManager: GameOverManager;
+    constructor(playerEntity: Entity, scheduler: ROT.Scheduler, gameOverManager: GameOverManager);
     addZombieAtLocation(location: Point): void;
+    zombieMoved(zombie: Zombie, locationFrom: Point, locationTo: Point): void;
+    zombieDied(zombie: Zombie): void;
 }
 declare class Zombie extends Entity {
     health: number;
-    coordinateManager: CoordinateManager;
     zombieManager: ZombieManager;
     playerEntity: Entity;
-    statusManager: StatusManager;
-    engine: ROT.Engine;
-    screenDrawer: ScreenDrawer;
-    display: ROT.Display;
-    scheduler: ROT.Scheduler;
     mapPassibilityManager: MapPassibilityManager;
-    constructor(location: Point, coordinateManager: CoordinateManager, zombieManager: ZombieManager, playerEntity: Entity, statusManager: StatusManager, screenDrawer: ScreenDrawer, engine: ROT.Engine, display: ROT.Display, scheduler: ROT.Scheduler, mapPassibilityManager: MapPassibilityManager);
+    gameOverManager: GameOverManager;
+    constructor(location: Point, zombieManager: ZombieManager, playerEntity: Entity, mapPassibilityManager: MapPassibilityManager, gameOverManager: GameOverManager);
     getSpeed(): number;
     act(): void;
     performWanderBehavior(): void;
     performDistantPlayerVisibleBehavior(playerLocation: Point): void;
     performNearPlayerVisibleBehavior(playerLocation: Point): void;
-    draw(x: number, y: number, background: string): void;
+    draw(display: ROT.Display, x: number, y: number, background: string): void;
     canMoveToLocation(location: Point): boolean;
     anotherZombieAtCoordinates(x: number, y: number): boolean;
     takeDamage(damage: number): boolean;

@@ -34,13 +34,9 @@ class Game {
 
     this.player = new Player(location);
     this.zombieManager = new ZombieManager(
-      this /* CoordinateManager */,
       this.player /* Entity */,
-      this /* StatusManager */,
-      this /* ScreenDrawer */,
-      this.engine,
-      this.display,
-      this.scheduler);
+      this.scheduler,
+      this /* GameOverManager */);
 
     this.map = new SinRandomMap(this.zombieManager);
 
@@ -93,7 +89,7 @@ class Game {
     } else if (key in this.zombieManager.locations) {
       var id = this.zombieManager.locations[key];
       var zombie = this.zombieManager.lookupById[id];
-      zombie.draw(screenX, screenY, background);
+      zombie.draw(this.display, screenX, screenY, background);
     } else {
       this.display.draw(
         screenX, 
@@ -156,6 +152,12 @@ class Game {
     var mapTopLeftY = this.player.location.y - Math.floor(screenHeight/2.0);
 
     return [x + mapTopLeftX, y + mapTopLeftY];
+  }
+
+  static setGameOver(killedHow: string, killedByWhat: string) {
+    this.setStatus('%c{red}Game over - you were ' + killedHow + ' by a ' + killedByWhat + '!');
+    this.drawScreen();
+    this.engine.lock();
   }
 }
 

@@ -24,6 +24,7 @@ declare class Game {
     static invalidScreenCoordinate(x: number, y: number): boolean;
     static convertMapCoordinatesToScreen(x: number, y: number): number[];
     static convertScreenCoordinatesToMap(x: number, y: number): number[];
+    static setGameOver(killedHow: string, killedByWhat: string): void;
 }
 declare class Player extends Entity {
     keyboardEventListener: EventListener;

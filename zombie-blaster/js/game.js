@@ -25,7 +25,7 @@ var Game = (function () {
         this.scheduler = new ROT.Scheduler.Simple();
         this.engine = new ROT.Engine(this.scheduler);
         this.player = new Player(location);
-        this.zombieManager = new ZombieManager(this, this.player, this, this, this.engine, this.display, this.scheduler);
+        this.zombieManager = new ZombieManager(this.player, this.scheduler, this);
         this.map = new SinRandomMap(this.zombieManager);
         var location = this.map.getEmptyLocation();
         this.player.location = location;
@@ -68,7 +68,7 @@ var Game = (function () {
         else if (key in this.zombieManager.locations) {
             var id = this.zombieManager.locations[key];
             var zombie = this.zombieManager.lookupById[id];
-            zombie.draw(screenX, screenY, background);
+            zombie.draw(this.display, screenX, screenY, background);
         }
         else {
             this.display.draw(screenX, screenY, this.map.getCell(location).tile, this.map.getCell(location).foregroundColor, background);
@@ -113,6 +113,11 @@ var Game = (function () {
         var mapTopLeftX = this.player.location.x - (Math.floor(screenWidth / 2.0) + +this.statusChunkSize);
         var mapTopLeftY = this.player.location.y - Math.floor(screenHeight / 2.0);
         return [x + mapTopLeftX, y + mapTopLeftY];
+    };
+    Game.setGameOver = function (killedHow, killedByWhat) {
+        this.setStatus('%c{red}Game over - you were ' + killedHow + ' by a ' + killedByWhat + '!');
+        this.drawScreen();
+        this.engine.lock();
     };
     Game.stats = new GameStats();
     return Game;

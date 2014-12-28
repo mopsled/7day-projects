@@ -6,42 +6,44 @@ var __extends = this.__extends || function (d, b) {
     d.prototype = new __();
 };
 var ZombieManager = (function () {
-    function ZombieManager(coordinateManager, playerEntity, statusManager, screenDrawer, engine, display, scheduler) {
+    function ZombieManager(playerEntity, scheduler, gameOverManager) {
         this.list = [];
         this.locations = {};
         this.lookupById = {};
-        this.zombieRate = 1;
         this.zombiesKilled = 0;
-        this.coordinateManager = coordinateManager;
         this.playerEntity = playerEntity;
-        this.statusManager = statusManager;
-        this.screenDrawer = screenDrawer;
-        this.engine = engine;
-        this.display = display;
         this.scheduler = scheduler;
+        this.gameOverManager = gameOverManager;
     }
     ZombieManager.prototype.addZombieAtLocation = function (location) {
-        var zombie = new Zombie(location, this.coordinateManager, this, this.playerEntity, this.statusManager, this.screenDrawer, this.engine, this.display, this.scheduler, this.mapPassibilityManager);
+        var zombie = new Zombie(location, this, this.playerEntity, this.mapPassibilityManager, this.gameOverManager);
         this.list.push(zombie);
         this.locations[zombie.location.x + ',' + zombie.location.y] = zombie.id;
         this.lookupById[zombie.id] = zombie;
         this.scheduler.add(zombie, true);
     };
+    ZombieManager.prototype.zombieMoved = function (zombie, locationFrom, locationTo) {
+        delete this.locations[locationFrom.x + ',' + locationFrom.y];
+        this.locations[locationTo.x + ',' + locationTo.y] = zombie.id;
+    };
+    ZombieManager.prototype.zombieDied = function (zombie) {
+        var key = zombie.location.x + ',' + zombie.location.y;
+        delete this.locations[key];
+        delete this.lookupById[zombie.id];
+        delete this.locations[key];
+        this.scheduler.remove(zombie);
+        this.zombiesKilled++;
+    };
     return ZombieManager;
 })();
 var Zombie = (function (_super) {
     __extends(Zombie, _super);
-    function Zombie(location, coordinateManager, zombieManager, playerEntity, statusManager, screenDrawer, engine, display, scheduler, mapPassibilityManager) {
+    function Zombie(location, zombieManager, playerEntity, mapPassibilityManager, gameOverManager) {
         _super.call(this, location);
-        this.coordinateManager = coordinateManager;
         this.zombieManager = zombieManager;
         this.playerEntity = playerEntity;
-        this.statusManager = statusManager;
-        this.screenDrawer = screenDrawer;
-        this.engine = engine;
-        this.display = display;
-        this.scheduler = scheduler;
         this.mapPassibilityManager = mapPassibilityManager;
+        this.gameOverManager = gameOverManager;
         this.health = 100;
     }
     Zombie.prototype.getSpeed = function () {
@@ -64,11 +66,12 @@ var Zombie = (function (_super) {
     Zombie.prototype.performWanderBehavior = function () {
         var movX = [-1, 0, 1].random();
         var movY = [-1, 0, 1].random();
-        if (this.canMoveToLocation(new Point(this.location.x + movX, this.location.y + movY))) {
-            delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
+        var newLocation = new Point(this.location.x + movX, this.location.y + movY);
+        if (this.canMoveToLocation(newLocation)) {
+            var oldLocation = new Point(this.location.x, this.location.y);
             this.location.x += movX;
             this.location.y += movY;
-            this.zombieManager.locations[this.location.x + ',' + this.location.y] = this.id;
+            this.zombieManager.zombieMoved(this, oldLocation, this.location);
         }
     };
     Zombie.prototype.performDistantPlayerVisibleBehavior = function (playerLocation) {
@@ -92,11 +95,12 @@ var Zombie = (function (_super) {
             }
             newX = this.location.x;
         }
-        if (this.canMoveToLocation(new Point(newX, newY))) {
-            delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
+        var newLocation = new Point(newX, newY);
+        if (this.canMoveToLocation(newLocation)) {
+            var oldLocation = new Point(this.location.x, this.location.y);
             this.location.x = newX;
             this.location.y = newY;
-            this.zombieManager.locations[newX + ',' + newY] = this.id;
+            this.zombieManager.zombieMoved(this, oldLocation, this.location);
         }
     };
     Zombie.prototype.performNearPlayerVisibleBehavior = function (playerLocation) {
@@ -111,22 +115,18 @@ var Zombie = (function (_super) {
         astar.compute(this.location.x, this.location.y, pathCallback);
         path.shift();
         if (path.length == 1) {
-            this.statusManager.setStatus('%c{red}Game over - you were eaten by a Zombie!');
-            this.screenDrawer.drawScreen();
-            this.engine.lock();
+            this.gameOverManager.setGameOver('eaten', 'zombie');
         }
         else if (path.length > 1) {
-            delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
-            var x = path[0][0];
-            var y = path[0][1];
-            this.location.x = x;
-            this.location.y = y;
-            this.zombieManager.locations[this.location.x + ',' + this.location.y] = this.id;
+            var oldLocation = new Point(this.location.x, this.location.y);
+            this.location.x = path[0][0];
+            this.location.y = path[0][1];
+            this.zombieManager.zombieMoved(this, oldLocation, this.location);
         }
     };
-    Zombie.prototype.draw = function (x, y, background) {
+    Zombie.prototype.draw = function (display, x, y, background) {
         var color = ROT.Color.interpolate([97, 65, 38], [255, 0, 0], this.health / 100);
-        this.display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
+        display.draw(x, y, "Z", ROT.Color.toRGB(color), background);
     };
     Zombie.prototype.canMoveToLocation = function (location) {
         var mapPassable = this.mapPassibilityManager.mapPassableAtLocation(location);
@@ -149,14 +149,7 @@ var Zombie = (function (_super) {
     Zombie.prototype.takeDamage = function (damage) {
         this.health -= damage;
         if (this.health <= 0) {
-            var key = this.location.x + ',' + this.location.y;
-            delete this.zombieManager.locations[this.location.x + ',' + this.location.y];
-            delete this.zombieManager.lookupById[this.id];
-            this.scheduler.remove(this);
-            this.zombieManager.zombiesKilled++;
-            if (ROT.RNG.getUniform() < 0.2) {
-                this.zombieManager.zombieRate++;
-            }
+            this.zombieManager.zombieDied(this);
             return true;
         }
         return false;

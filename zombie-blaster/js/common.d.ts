@@ -7,16 +7,11 @@ declare class Point {
 interface InventoryManager {
     ammo: number;
 }
+interface GameOverManager {
+    setGameOver(killedHow: string, killedByWhat: string): any;
+}
 interface StatusManager {
     setStatus(status: string): any;
-}
-interface CoordinateManager {
-    convertMapCoordinatesToScreen(x: number, y: number): any;
-    convertScreenCoordinatesToMap(x: number, y: number): any;
-    invalidScreenCoordinate(x: number, y: number): any;
-}
-interface ScreenDrawer {
-    drawScreen(): any;
 }
 interface MapPassibilityManager {
     mapPassableAtLocation(location: Point): any;

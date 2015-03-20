@@ -76,7 +76,7 @@ def setupStory():
 	house.hold(bedroom, livingRoom, kitchen)
 
 	park = Location('park', 'unused swings hang on rusty chains. the grass is long overgrown')
-	knife = Item('knife', 'discolored stainless steal')
+	knife = Item('knife', 'discolored stainless steel')
 	park.hold(knife)
 
 	prologue = Item('prologue', "you are hungry. it's been days")
